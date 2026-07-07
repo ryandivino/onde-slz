@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@theme {
+  /* Paleta do seu projeto */
+  --color-background: #000000; 
+  --color-accent: #f0f0f0;
+  --font-sans: 'Inter', sans-serif;
+}
