@@ -405,10 +405,16 @@ export default function App() {
             </Swiper>
 
             {!naInicioFiltros && (
-              <div className="pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-background to-transparent" />
+              <div
+                className="pointer-events-none absolute left-0 top-0 h-full w-10 z-10"
+                style={{ background: 'linear-gradient(to right, #000000 0%, rgba(0,0,0,0) 100%)' }}
+              />
             )}
             {!noFimFiltros && (
-              <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent" />
+              <div
+                className="pointer-events-none absolute right-0 top-0 h-full w-10 z-10"
+                style={{ background: 'linear-gradient(to left, #000000 0%, rgba(0,0,0,0) 100%)' }}
+              />
             )}
           </div>
 
