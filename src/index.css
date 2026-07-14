@@ -2,7 +2,22 @@
 
 @theme {
   /* Paleta do seu projeto */
-  --color-background: #000000; 
+  --color-background: #000000;
   --color-accent: #f0f0f0;
+  --color-surface: #0a0a0a;
+  --color-borderRaw: #262626;
+
+  --color-pin-fixed: #f5f5f5;      /* branco/neutro — pontos fixos/curados */
+  --color-pin-live: #22c55e;       /* verde — rolês temporários */
+  --color-pin-realtime: #f97316;   /* laranja — posição do usuário em tempo real (Fase 4) */
+
   --font-sans: 'Inter', sans-serif;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
