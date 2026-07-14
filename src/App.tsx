@@ -93,8 +93,6 @@ export default function App() {
   const [isAmigosOpen, setIsAmigosOpen] = useState(false)
 
   const [filterActive, setFilterActive] = useState('TODOS')
-  const [naInicioFiltros, setNaInicioFiltros] = useState(true)
-  const [noFimFiltros, setNoFimFiltros] = useState(false)
   const [abaDrawer, setAbaDrawer] = useState<'atividades' | 'onde_ir'>('atividades')
   const [termoBusca, setTermoBusca] = useState('')
 
@@ -380,19 +378,12 @@ export default function App() {
               grabCursor={true}
               className="w-full h-12"
               onSwiper={(swiper) => {
-                setNaInicioFiltros(swiper.isBeginning)
-                setNoFimFiltros(swiper.isEnd)
-
                 // Pequeno "empurrãozinho" pra mostrar que dá pra arrastar a
                 // lista — roda toda vez que a página carrega/recarrega.
                 setTimeout(() => {
                   swiper.slideTo(1, 350)
                   setTimeout(() => swiper.slideTo(0, 350), 550)
                 }, 900)
-              }}
-              onSlideChange={(swiper) => {
-                setNaInicioFiltros(swiper.isBeginning)
-                setNoFimFiltros(swiper.isEnd)
               }}
             >
               {filters.map((category) => (
@@ -403,19 +394,6 @@ export default function App() {
                 </SwiperSlide>
               ))}
             </Swiper>
-
-            {!naInicioFiltros && (
-              <div
-                className="pointer-events-none absolute left-0 top-0 h-full w-10 z-10"
-                style={{ background: 'linear-gradient(to right, #000000 0%, rgba(0,0,0,0) 100%)' }}
-              />
-            )}
-            {!noFimFiltros && (
-              <div
-                className="pointer-events-none absolute right-0 top-0 h-full w-10 z-10"
-                style={{ background: 'linear-gradient(to left, #000000 0%, rgba(0,0,0,0) 100%)' }}
-              />
-            )}
           </div>
 
           <button
