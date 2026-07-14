@@ -84,7 +84,7 @@ export function InstallPrompt() {
 
         {mostrarPopupIOS && (
           <div className="space-y-2 text-xs text-accent/70">
-            <p><strong>ONDE</strong> é um site que também funciona como App: Para instalar o ONDE no seu iPhone, é rapidinho:</p>
+            <p>O <strong>ONDE</strong> é um site que também funciona como App: Para instalar o ONDE no seu iPhone, é rapidinho:</p>
             <ol className="space-y-1.5 list-decimal list-inside">
               <li>Toque no ícone de <strong>Compartilhar</strong> (o quadrado com a seta pra cima), na barra do Safari.</li>
               <li>Role a lista de opções e toque em <strong>"Adicionar à Tela de Início".</strong></li>
@@ -95,7 +95,7 @@ export function InstallPrompt() {
 
         {mostrarPopupIOSOutroNavegador && (
           <p className="text-xs text-accent/70">
-            <strong>ONDE</strong> é um site que também funciona como App, portanto se você deseja ter o App na sua tela inicial: No iPhone, só o <strong>Safari</strong> tem permissão da Apple para instalar apps assim — é uma regra do sistema, não algo que dependa nosso. Abra esse link no Safari para poder instalar.
+            O <strong>ONDE</strong> é um site que também funciona como App, portanto se você deseja ter o App na sua tela inicial: No iPhone, só o <strong>Safari</strong> tem permissão da Apple para instalar apps assim — é uma regra do sistema, não algo que dependa de nós. Abra esse link no Safari para poder instalar.
           </p>
         )}
 
