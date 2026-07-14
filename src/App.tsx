@@ -22,6 +22,7 @@ import { useEventos } from './hooks/useEventos'
 import { useResumoSemanal } from './hooks/useResumoSemanal'
 import { useRegistrarAbertura } from './hooks/useMetricas'
 import { EstatisticasPanel } from './components/EstatisticasPanel'
+import { InstallPrompt } from './components/InstallPrompt'
 import { useLotacao } from './hooks/useLotacao'
 import { EventosManager } from './components/EventosManager'
 import { AnunciosManager } from './components/AnunciosManager'
@@ -765,6 +766,8 @@ export default function App() {
           onClose={() => setLocalParaEventos(null)}
         />
       )}
+
+      <InstallPrompt />
     </div>
   )
 }

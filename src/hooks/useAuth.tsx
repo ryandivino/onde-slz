@@ -77,6 +77,36 @@ function useAuthState() {
     return error
   }
 
+  // Traduz as mensagens de erro mais comuns do Supabase Auth (que vêm em
+  // inglês) pra um português direto, alinhado com o resto do app.
+  const traduzirErroAuth = (error: any): Error => {
+    const msg = (error?.message || '').toLowerCase()
+
+    if (msg.includes('invalid login credentials')) {
+      return new Error('E-mail ou senha incorretos.')
+    }
+    if (msg.includes('email not confirmed')) {
+      return new Error('Confirme seu e-mail antes de entrar (verifique sua caixa de entrada).')
+    }
+    if (msg.includes('user already registered') || msg.includes('already registered')) {
+      return new Error('Esse e-mail já está cadastrado.')
+    }
+    if (msg.includes('password should be at least')) {
+      return new Error('A senha precisa ter pelo menos 6 caracteres.')
+    }
+    if (msg.includes('unable to validate email address') || msg.includes('invalid email')) {
+      return new Error('Esse e-mail não é válido.')
+    }
+    if (msg.includes('rate limit') || msg.includes('too many requests')) {
+      return new Error('Muitas tentativas em pouco tempo. Aguarde um instante e tente de novo.')
+    }
+    if (msg.includes('network')) {
+      return new Error('Falha de conexão. Verifique sua internet e tente de novo.')
+    }
+
+    return error instanceof Error ? error : new Error('Não foi possível completar a ação. Tente novamente.')
+  }
+
   const cadastrar = async (email: string, senha: string, apelido: string) => {
     const apelidoLimpo = apelido.trim()
 
@@ -90,7 +120,7 @@ function useAuthState() {
       options: { data: { apelido: apelidoLimpo } }
     })
 
-    if (error) return { error: traduzirErroApelido(error), precisaConfirmarEmail: false }
+    if (error) return { error: traduzirErroAuth(traduzirErroApelido(error)), precisaConfirmarEmail: false }
 
     const precisaConfirmarEmail = !data.session
     if (data.session?.user) await buscarPerfil(data.session.user.id)
@@ -130,7 +160,7 @@ function useAuthState() {
       }
     })
 
-    if (error) return { error: traduzirErroApelido(error), precisaConfirmarEmail: false }
+    if (error) return { error: traduzirErroAuth(traduzirErroApelido(error)), precisaConfirmarEmail: false }
 
     const precisaConfirmarEmail = !data.session
     if (data.session?.user) await buscarPerfil(data.session.user.id)
@@ -140,7 +170,8 @@ function useAuthState() {
 
   const entrar = async (email: string, senha: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
-    return { error }
+    if (error) return { error: traduzirErroAuth(error) }
+    return { error: null }
   }
 
   const enviarLinkRecuperacao = async (email: string) => {
