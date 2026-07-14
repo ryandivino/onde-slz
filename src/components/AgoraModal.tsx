@@ -58,7 +58,8 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
         lng: coordenadas?.lng ?? null,
         categoria: 'AGORA',
         is_fixed: false,
-        image_url: urlData.publicUrl
+        image_url: urlData.publicUrl,
+        anonimo: postarAnonimo
       }])
       if (erroInsert) throw erroInsert
 

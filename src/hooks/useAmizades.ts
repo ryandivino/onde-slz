@@ -3,6 +3,7 @@ import { supabase } from '../supabase'
 import { useAuth } from './useAuth'
 
 export type PerfilBasico = { id: string; apelido: string }
+export type AmigoComAmizade = PerfilBasico & { amizadeId: number }
 export type Amizade = {
   id: number
   solicitante_id: string
@@ -15,7 +16,7 @@ export function useAmizades() {
   const { session, usuarioLogado } = useAuth()
   const meuId = session?.user.id
 
-  const [amigos, setAmigos] = useState<PerfilBasico[]>([])
+  const [amigos, setAmigos] = useState<AmigoComAmizade[]>([])
   const [pedidosRecebidos, setPedidosRecebidos] = useState<(Amizade & { solicitante: PerfilBasico })[]>([])
   const [carregando, setCarregando] = useState(false)
 
@@ -31,9 +32,12 @@ export function useAmizades() {
       .or(`solicitante_id.eq.${meuId},destinatario_id.eq.${meuId}`)
 
     if (aceitas && aceitas.length > 0) {
+      const mapaAmizadeIdPorOutroId = new Map(
+        aceitas.map((a) => [a.solicitante_id === meuId ? a.destinatario_id : a.solicitante_id, a.id])
+      )
       const outrosIds = aceitas.map((a) => (a.solicitante_id === meuId ? a.destinatario_id : a.solicitante_id))
       const { data: perfis } = await supabase.from('profiles').select('id, apelido').in('id', outrosIds)
-      setAmigos(perfis || [])
+      setAmigos((perfis || []).map((p) => ({ ...p, amizadeId: mapaAmizadeIdPorOutroId.get(p.id)! })))
     } else {
       setAmigos([])
     }

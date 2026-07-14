@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useEmpresa } from '../hooks/useEmpresa'
-import { X, Camera, Pencil, Check } from 'lucide-react'
+import { useAmizades } from '../hooks/useAmizades'
+import { X, Camera, Pencil, Check, Users } from 'lucide-react'
 
 export function PerfilScreen({ onClose }: { onClose: () => void }) {
   const { perfil, enviarAvatar, atualizarBio, atualizarApelido } = useAuth()
   const { empresa, atualizarEmpresa } = useEmpresa()
+  const { amigos } = useAmizades()
   const inputAvatarRef = useRef<HTMLInputElement>(null)
 
   const [enviandoAvatar, setEnviandoAvatar] = useState(false)
@@ -141,6 +143,12 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
             )}
           </div>
         )}
+
+        {/* Amigos — só a contagem, visível só pro próprio dono do perfil (não clicável) */}
+        <div className="flex items-center justify-center gap-2 text-[11px] font-mono text-accent/50 border-y border-borderRaw/20 py-2">
+          <Users size={13} />
+          <span>{amigos.length} amigo{amigos.length !== 1 ? 's' : ''}</span>
+        </div>
 
         {/* Bio */}
         <div className="space-y-1.5">

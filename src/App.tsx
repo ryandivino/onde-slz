@@ -23,6 +23,7 @@ import { useResumoSemanal } from './hooks/useResumoSemanal'
 import { useRegistrarAbertura } from './hooks/useMetricas'
 import { EstatisticasPanel } from './components/EstatisticasPanel'
 import { InstallPrompt } from './components/InstallPrompt'
+import { PerfilPublicoModal } from './components/PerfilPublicoModal'
 import { useLotacao } from './hooks/useLotacao'
 import { EventosManager } from './components/EventosManager'
 import { AnunciosManager } from './components/AnunciosManager'
@@ -60,24 +61,40 @@ export default function App() {
   const [localParaEventos, setLocalParaEventos] = useState<{ id: number; nome: string } | null>(null)
   const [mostrarCalor, setMostrarCalor] = useState(false)
   const [pulsoParaDenunciar, setPulsoParaDenunciar] = useState<number | null>(null)
+  const [perfilPublicoAlvo, setPerfilPublicoAlvo] = useState<string | null>(null)
 
-  // Fluxo de abertura do app: loading -> políticas (se ainda não aceitas) -> anúncio
+  // Fluxo de abertura do app: loading -> políticas (se ainda não aceitas) -> anúncio (no máx. 1x por dia)
   const [mostrarLoading, setMostrarLoading] = useState(true)
   const [politicasAceitas, setPoliticasAceitas] = useState(politicasJaAceitas())
   const [mostrarAd, setMostrarAd] = useState(false)
 
+  const CHAVE_ULTIMO_AD = 'onde_ultimo_anuncio_mostrado'
+  const UM_DIA_MS = 24 * 60 * 60 * 1000
+
+  const devoMostrarAd = () => {
+    const ultimo = localStorage.getItem(CHAVE_ULTIMO_AD)
+    if (!ultimo) return true
+    return Date.now() - parseInt(ultimo, 10) > UM_DIA_MS
+  }
+
+  const marcarAdComoMostrado = () => {
+    localStorage.setItem(CHAVE_ULTIMO_AD, String(Date.now()))
+  }
+
   const iniciarApp = () => {
     setMostrarLoading(false)
-    if (politicasAceitas) setMostrarAd(true)
+    if (politicasAceitas && devoMostrarAd()) setMostrarAd(true)
   }
 
   const aceitarPoliticas = () => {
     setPoliticasAceitas(true)
-    setMostrarAd(true)
+    if (devoMostrarAd()) setMostrarAd(true)
   }
   const [isAmigosOpen, setIsAmigosOpen] = useState(false)
 
   const [filterActive, setFilterActive] = useState('TODOS')
+  const [naInicioFiltros, setNaInicioFiltros] = useState(true)
+  const [noFimFiltros, setNoFimFiltros] = useState(false)
   const [abaDrawer, setAbaDrawer] = useState<'atividades' | 'onde_ir'>('atividades')
   const [termoBusca, setTermoBusca] = useState('')
 
@@ -297,7 +314,8 @@ export default function App() {
       lat: coordenadas.lat,
       lng: coordenadas.lng,
       categoria: categoriaEnvio,
-      is_fixed: false
+      is_fixed: false,
+      anonimo: postarAnonimo
     }
 
     const { error } = await supabase.from('pulsos').insert([payload])
@@ -355,8 +373,31 @@ export default function App() {
         <div className="w-full flex items-center gap-3 pointer-events-auto px-2">
           <img src={logo} alt="ONDE" className="w-8 h-8 flex-shrink-0" />
 
-          <div className="flex-1 min-w-0">
-            <Swiper slidesPerView={"auto"} spaceBetween={10} grabCursor={true} className="w-full h-12">
+          <div className="flex-1 min-w-0 relative">
+            <Swiper
+              slidesPerView={"auto"}
+              spaceBetween={10}
+              grabCursor={true}
+              className="w-full h-12"
+              onSwiper={(swiper) => {
+                setNaInicioFiltros(swiper.isBeginning)
+                setNoFimFiltros(swiper.isEnd)
+
+                // Só na primeira vez que a pessoa abre o app: um pequeno
+                // "empurrãozinho" pra mostrar que dá pra arrastar a lista.
+                if (!localStorage.getItem('onde_dica_filtros_mostrada')) {
+                  localStorage.setItem('onde_dica_filtros_mostrada', 'true')
+                  setTimeout(() => {
+                    swiper.slideTo(1, 350)
+                    setTimeout(() => swiper.slideTo(0, 350), 550)
+                  }, 900)
+                }
+              }}
+              onSlideChange={(swiper) => {
+                setNaInicioFiltros(swiper.isBeginning)
+                setNoFimFiltros(swiper.isEnd)
+              }}
+            >
               {filters.map((category) => (
                 <SwiperSlide key={category} className="!w-auto flex items-center py-1">
                   <button onClick={() => lidarComCliqueFiltro(category)} className={`rounded-full text-[10px] font-mono uppercase tracking-widest px-5 py-2.5 border ${filterActive === category ? 'bg-accent text-background' : 'bg-background/90 text-accent/60'}`}>
@@ -365,6 +406,13 @@ export default function App() {
                 </SwiperSlide>
               ))}
             </Swiper>
+
+            {!naInicioFiltros && (
+              <div className="pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-background to-transparent" />
+            )}
+            {!noFimFiltros && (
+              <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent" />
+            )}
           </div>
 
           <button
@@ -498,7 +546,16 @@ export default function App() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <span className="text-[8px] font-mono text-accent/40 uppercase tracking-widest">{relato.categoria}</span>
-                    <h2 className="text-xs font-mono font-bold">{relato.nome_local}</h2>
+                    {relato.user_id ? (
+                      <h2
+                        className="text-xs font-mono font-bold cursor-pointer hover:underline w-fit"
+                        onClick={() => setPerfilPublicoAlvo(relato.user_id)}
+                      >
+                        {relato.nome_local}
+                      </h2>
+                    ) : (
+                      <h2 className="text-xs font-mono font-bold">{relato.nome_local}</h2>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button onClick={() => setPulsoParaDenunciar(relato.id)} className="text-accent/40 hover:text-red-400">
@@ -572,7 +629,16 @@ export default function App() {
             {abaDrawer === 'atividades' && listaAtual.map((relato) => (
               <div key={relato.id} className="border-b border-borderRaw/10 pb-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-xs font-mono">{relato.apelido || '@ANÔNIMO'}</h2>
+                  {!relato.anonimo && relato.user_id ? (
+                    <h2
+                      className="text-xs font-mono cursor-pointer hover:underline"
+                      onClick={() => setPerfilPublicoAlvo(relato.user_id)}
+                    >
+                      {relato.apelido || '@ANÔNIMO'}
+                    </h2>
+                  ) : (
+                    <h2 className="text-xs font-mono">{relato.apelido || '@ANÔNIMO'}</h2>
+                  )}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button onClick={() => setPulsoParaDenunciar(relato.id)} className="text-accent/40 hover:text-red-400">
                       <Flag size={13} />
@@ -706,7 +772,7 @@ export default function App() {
       )}
 
       {!mostrarLoading && politicasAceitas && mostrarAd && (
-        <AdBanner onClose={() => setMostrarAd(false)} />
+        <AdBanner onClose={() => setMostrarAd(false)} onAdMostrado={marcarAdComoMostrado} />
       )}
 
       {emRecuperacaoSenha && <NovaSenhaScreen />}
@@ -768,6 +834,10 @@ export default function App() {
       )}
 
       <InstallPrompt />
+
+      {perfilPublicoAlvo && (
+        <PerfilPublicoModal userId={perfilPublicoAlvo} onClose={() => setPerfilPublicoAlvo(null)} />
+      )}
     </div>
   )
 }

@@ -117,10 +117,21 @@ function useAuthState() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password: senha,
-      options: { data: { apelido: apelidoLimpo } }
+      options: {
+        data: { apelido: apelidoLimpo },
+        emailRedirectTo: window.location.origin
+      }
     })
 
     if (error) return { error: traduzirErroAuth(traduzirErroApelido(error)), precisaConfirmarEmail: false }
+
+    // Supabase não avisa se o e-mail já existe (proteção contra enumeração) —
+    // ele só reenvia algo pro e-mail antigo e finge que deu certo. O jeito
+    // confiável de detectar isso é checar `identities`: uma conta nova
+    // sempre vem com pelo menos uma; uma já existente e confirmada, com zero.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      return { error: new Error('Esse e-mail já está cadastrado. Tente entrar ou usar "Esqueceu sua senha?".'), precisaConfirmarEmail: false }
+    }
 
     const precisaConfirmarEmail = !data.session
     if (data.session?.user) await buscarPerfil(data.session.user.id)
@@ -156,11 +167,20 @@ function useAuthState() {
           lng,
           categoria,
           descricao: descricao.trim()
-        }
+        },
+        emailRedirectTo: window.location.origin
       }
     })
 
     if (error) return { error: traduzirErroAuth(traduzirErroApelido(error)), precisaConfirmarEmail: false }
+
+    // Supabase não avisa se o e-mail já existe (proteção contra enumeração) —
+    // ele só reenvia algo pro e-mail antigo e finge que deu certo. O jeito
+    // confiável de detectar isso é checar `identities`: uma conta nova
+    // sempre vem com pelo menos uma; uma já existente e confirmada, com zero.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      return { error: new Error('Esse e-mail já está cadastrado. Tente entrar ou usar "Esqueceu sua senha?".'), precisaConfirmarEmail: false }
+    }
 
     const precisaConfirmarEmail = !data.session
     if (data.session?.user) await buscarPerfil(data.session.user.id)

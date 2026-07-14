@@ -1,15 +1,35 @@
 import React, { useState } from 'react'
 import { useAmizades } from '../hooks/useAmizades'
 import type { PerfilBasico } from '../hooks/useAmizades'
-import { UserPlus, Check, X, Users } from 'lucide-react'
+import { UserPlus, UserMinus, Check, X, Users } from 'lucide-react'
+import { PerfilPublicoModal } from './PerfilPublicoModal'
 
 export function AmigosPanel({ onClose }: { onClose: () => void }) {
   const { amigos, pedidosRecebidos, buscarUsuarios, enviarPedido, aceitarPedido, removerOuRejeitar } = useAmizades()
+  const [perfilPublicoAlvo, setPerfilPublicoAlvo] = useState<string | null>(null)
+  const [desfazendo, setDesfazendo] = useState<Set<number>>(new Set())
+
+  const lidarComDesfazerAmizade = async (amizadeId: number, apelido: string) => {
+    if (!confirm(`Desfazer amizade com @${apelido}?`)) return
+    setDesfazendo((s) => new Set(s).add(amizadeId))
+    await removerOuRejeitar(amizadeId)
+  }
 
   const [termo, setTermo] = useState('')
   const [resultados, setResultados] = useState<PerfilBasico[]>([])
   const [buscando, setBuscando] = useState(false)
   const [enviados, setEnviados] = useState<Set<string>>(new Set())
+  const [processandoPedidos, setProcessandoPedidos] = useState<Set<number>>(new Set())
+
+  const lidarComAceitarPedido = async (id: number) => {
+    setProcessandoPedidos((s) => new Set(s).add(id))
+    await aceitarPedido(id)
+  }
+
+  const lidarComRejeitarPedido = async (id: number) => {
+    setProcessandoPedidos((s) => new Set(s).add(id))
+    await removerOuRejeitar(id)
+  }
 
   const lidarComBusca = async (valor: string) => {
     setTermo(valor)
@@ -52,7 +72,7 @@ export function AmigosPanel({ onClose }: { onClose: () => void }) {
               const jaEnviado = enviados.has(r.id)
               return (
                 <div key={r.id} className="flex items-center justify-between text-xs font-mono">
-                  <span>@{r.apelido}</span>
+                  <span className="cursor-pointer hover:underline" onClick={() => setPerfilPublicoAlvo(r.id)}>@{r.apelido}</span>
                   {jaAmigo ? (
                     <span className="text-[9px] text-green-400">JÁ SÃO AMIGOS</span>
                   ) : jaEnviado ? (
@@ -73,11 +93,15 @@ export function AmigosPanel({ onClose }: { onClose: () => void }) {
             <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest">Pedidos recebidos</span>
             {pedidosRecebidos.map((p) => (
               <div key={p.id} className="flex items-center justify-between text-xs font-mono">
-                <span>@{p.solicitante.apelido}</span>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => aceitarPedido(p.id)} className="text-green-400"><Check size={15} /></button>
-                  <button onClick={() => removerOuRejeitar(p.id)} className="text-red-400"><X size={15} /></button>
-                </div>
+                <span className="cursor-pointer hover:underline" onClick={() => setPerfilPublicoAlvo(p.solicitante.id)}>@{p.solicitante.apelido}</span>
+                {processandoPedidos.has(p.id) ? (
+                  <span className="text-[9px] text-accent/40">...</span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => lidarComAceitarPedido(p.id)} className="text-green-400"><Check size={15} /></button>
+                    <button onClick={() => lidarComRejeitarPedido(p.id)} className="text-red-400"><X size={15} /></button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -89,10 +113,23 @@ export function AmigosPanel({ onClose }: { onClose: () => void }) {
           </span>
           {amigos.length === 0 && <p className="text-[10px] text-accent/30">Você ainda não tem amigos por aqui.</p>}
           {amigos.map((a) => (
-            <div key={a.id} className="text-xs font-mono">@{a.apelido}</div>
+            <div key={a.id} className="flex items-center justify-between text-xs font-mono">
+              <span className="cursor-pointer hover:underline" onClick={() => setPerfilPublicoAlvo(a.id)}>@{a.apelido}</span>
+              {desfazendo.has(a.amizadeId) ? (
+                <span className="text-[9px] text-accent/40">...</span>
+              ) : (
+                <button onClick={() => lidarComDesfazerAmizade(a.amizadeId, a.apelido)} className="text-accent/30 hover:text-red-400">
+                  <UserMinus size={13} />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </div>
+
+      {perfilPublicoAlvo && (
+        <PerfilPublicoModal userId={perfilPublicoAlvo} onClose={() => setPerfilPublicoAlvo(null)} />
+      )}
     </div>
   )
 }
