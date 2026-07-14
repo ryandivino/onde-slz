@@ -383,15 +383,12 @@ export default function App() {
                 setNaInicioFiltros(swiper.isBeginning)
                 setNoFimFiltros(swiper.isEnd)
 
-                // Só na primeira vez que a pessoa abre o app: um pequeno
-                // "empurrãozinho" pra mostrar que dá pra arrastar a lista.
-                if (!localStorage.getItem('onde_dica_filtros_mostrada')) {
-                  localStorage.setItem('onde_dica_filtros_mostrada', 'true')
-                  setTimeout(() => {
-                    swiper.slideTo(1, 350)
-                    setTimeout(() => swiper.slideTo(0, 350), 550)
-                  }, 900)
-                }
+                // Pequeno "empurrãozinho" pra mostrar que dá pra arrastar a
+                // lista — roda toda vez que a página carrega/recarrega.
+                setTimeout(() => {
+                  swiper.slideTo(1, 350)
+                  setTimeout(() => swiper.slideTo(0, 350), 550)
+                }, 900)
               }}
               onSlideChange={(swiper) => {
                 setNaInicioFiltros(swiper.isBeginning)

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { useAnuncios } from '../hooks/useAnuncios'
 
-const DURACAO_POR_ANUNCIO_MS = 6000
+const DURACAO_POR_ANUNCIO_MS = 3000
 
 export function AdBanner({ onClose, onAdMostrado }: { onClose: () => void; onAdMostrado?: () => void }) {
   const { anunciosAtivos, carregando } = useAnuncios()
