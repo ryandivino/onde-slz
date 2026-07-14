@@ -95,7 +95,7 @@ export function InstallPrompt() {
 
         {mostrarPopupIOSOutroNavegador && (
           <p className="text-xs text-accent/70">
-            No iPhone, só o <strong>Safari</strong> tem permissão da Apple pra instalar apps assim — é uma regra do sistema, não algo que dependa do ONDE. Abre esse link no Safari pra poder instalar.
+            O ONDE é um WebSite que também funciona como Web App, portanto se deseja ter o App na sua tela inicial: No iPhone, só o <strong>Safari</strong> tem permissão da Apple para instalar apps assim — é uma regra do sistema, não algo que dependa nosso. Abra esse link no Safari para poder instalar.
           </p>
         )}
 
