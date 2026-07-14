@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
-import { X, Store, Phone, Instagram, Globe, Clock } from 'lucide-react'
+import { X, Store, Phone, AtSign, Globe, Clock } from 'lucide-react'
 
 type PerfilPublico = {
   apelido: string
@@ -103,7 +103,7 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
                 )}
                 {empresa.instagram && (
                   <div className="flex items-center gap-2 text-xs text-accent/70">
-                    <Instagram size={13} className="flex-shrink-0" /> {empresa.instagram}
+                    <AtSign size={13} className="flex-shrink-0" /> {empresa.instagram}
                   </div>
                 )}
                 {empresa.site && (
