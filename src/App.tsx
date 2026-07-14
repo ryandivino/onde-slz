@@ -346,8 +346,11 @@ export default function App() {
   const alturaDrawer = ALTURA_MINIMA + drawerY * (typeof window !== 'undefined' ? window.innerHeight * ALTURA_MAXIMA_VH - ALTURA_MINIMA : 0)
 
   return (
-    <div className="bg-background min-h-screen text-accent font-sans antialiased relative overflow-hidden flex flex-col justify-between">
-      <header className="absolute top-0 left-0 w-full z-[1000] p-4 bg-gradient-to-b from-background via-background/20 to-transparent pointer-events-none">
+    <div className="bg-background fixed inset-0 text-accent font-sans antialiased overflow-hidden flex flex-col justify-between">
+      <header
+        className="absolute top-0 left-0 w-full z-[1000] p-4 bg-gradient-to-b from-background via-background/20 to-transparent pointer-events-none"
+        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+      >
         <div className="w-full flex items-center gap-3 pointer-events-auto px-2">
           <img src={logo} alt="ONDE" className="w-8 h-8 flex-shrink-0" />
 
@@ -407,7 +410,10 @@ export default function App() {
         <Flame size={18} />
       </button>
 
-      <div className="fixed bottom-4 left-0 right-0 z-[1000] w-[calc(100%-2rem)] max-w-md mx-auto flex flex-col gap-3 pointer-events-none">
+      <div
+        className="fixed bottom-4 left-0 right-0 z-[1000] w-[calc(100%-2rem)] max-w-md mx-auto flex flex-col gap-3 pointer-events-none"
+        style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <div className="flex justify-center gap-2 w-full">
           <button
             onClick={abrirFormularioNormal}

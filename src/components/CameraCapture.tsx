@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Camera, RotateCcw, Check, X } from 'lucide-react'
+import { Camera, RotateCcw, Check, X, SwitchCamera } from 'lucide-react'
 
 export function CameraCapture({
   onFotoCapturada,
@@ -15,23 +15,30 @@ export function CameraCapture({
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [fotoBlob, setFotoBlob] = useState<Blob | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [modoCamera, setModoCamera] = useState<'environment' | 'user'>('environment')
 
   useEffect(() => {
     iniciarCamera()
     return () => pararCamera()
-  }, [])
+  }, [modoCamera])
 
   const iniciarCamera = async () => {
+    pararCamera()
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: { facingMode: modoCamera },
         audio: false
       })
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
+      setErro(null)
     } catch (err) {
       setErro('Não conseguimos acessar sua câmera. Verifique a permissão do navegador.')
     }
+  }
+
+  const trocarCamera = () => {
+    setModoCamera((m) => (m === 'environment' ? 'user' : 'environment'))
   }
 
   const pararCamera = () => {
@@ -92,6 +99,15 @@ export function CameraCapture({
         >
           <X size={20} />
         </button>
+
+        {!fotoPreview && !erro && (
+          <button
+            onClick={trocarCamera}
+            className="absolute top-4 left-4 bg-background/60 rounded-full p-2 text-white"
+          >
+            <SwitchCamera size={20} />
+          </button>
+        )}
       </div>
 
       <div className="p-6 flex items-center justify-center gap-8 bg-black">

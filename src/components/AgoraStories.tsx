@@ -14,7 +14,10 @@ export function AgoraStories({ posts, onAbrir }: { posts: PostAgora[]; onAbrir: 
   if (posts.length === 0) return null
 
   return (
-    <div className="absolute top-16 left-0 w-full z-[999] pointer-events-none">
+    <div
+      className="absolute left-0 w-full z-[999] pointer-events-none"
+      style={{ top: 'calc(4rem + env(safe-area-inset-top))' }}
+    >
       <div className="flex gap-3 overflow-x-auto px-4 py-1 pointer-events-auto no-scrollbar">
         {posts.map((post, indice) => (
           <button
