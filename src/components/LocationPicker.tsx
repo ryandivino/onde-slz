@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Search, Link2, Satellite, Map as MapIcon, Check, Pencil } from 'lucide-react'
+import { Search, Link2, Satellite, Map as MapIcon } from 'lucide-react'
 import { supabase } from '../supabase'
 import { extrairCoordenadasDoLink, ehLinkCurto } from '../utils/linkMapa'
 
@@ -36,7 +36,6 @@ export function LocationPicker({
   const [erroLink, setErroLink] = useState<string | null>(null)
 
   const [modoMapa, setModoMapa] = useState<'ruas' | 'satelite'>('ruas')
-  const [confirmado, setConfirmado] = useState(false)
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return
@@ -64,13 +63,11 @@ export function LocationPicker({
     marcador.current.on('dragend', () => {
       const pos = marcador.current!.getLatLng()
       onChange(pos.lat, pos.lng)
-      setConfirmado(false)
     })
 
     mapInstance.current.on('click', (e: L.LeafletMouseEvent) => {
       marcador.current!.setLatLng(e.latlng)
       onChange(e.latlng.lat, e.latlng.lng)
-      setConfirmado(false)
     })
 
     if (lat === null || lng === null) {
@@ -96,17 +93,6 @@ export function LocationPicker({
   const moverPara = (novoLat: number, novoLng: number, zoom = 17) => {
     onChange(novoLat, novoLng)
     mapInstance.current?.setView([novoLat, novoLng], zoom)
-    setConfirmado(false)
-  }
-
-  // Usado só quando a localização vem de link/busca (não de arrastar o pino
-  // manualmente) — já pula pra visão satélite com zoom, pra pessoa ver na
-  // hora "é aqui mesmo?" sem precisar lembrar de trocar o modo do mapa.
-  const moverParaComPreviaAutomatica = (novoLat: number, novoLng: number) => {
-    onChange(novoLat, novoLng)
-    mapInstance.current?.setView([novoLat, novoLng], 19)
-    alternarCamada('satelite')
-    setConfirmado(false)
   }
 
   const buscarEndereco = async (e: React.FormEvent) => {
@@ -134,7 +120,7 @@ export function LocationPicker({
   }
 
   const irParaResultado = (resultado: ResultadoBusca) => {
-    moverParaComPreviaAutomatica(parseFloat(resultado.lat), parseFloat(resultado.lon))
+    moverPara(parseFloat(resultado.lat), parseFloat(resultado.lon))
     setResultados([])
     setTermoBusca(resultado.display_name)
   }
@@ -148,7 +134,7 @@ export function LocationPicker({
     try {
       const coordenadasDiretas = extrairCoordenadasDoLink(linkColado)
       if (coordenadasDiretas) {
-        moverParaComPreviaAutomatica(coordenadasDiretas.lat, coordenadasDiretas.lng)
+        moverPara(coordenadasDiretas.lat, coordenadasDiretas.lng)
         setProcessandoLink(false)
         return
       }
@@ -159,7 +145,7 @@ export function LocationPicker({
 
         const coordenadasResolvidas = extrairCoordenadasDoLink(data.finalUrl)
         if (coordenadasResolvidas) {
-          moverParaComPreviaAutomatica(coordenadasResolvidas.lat, coordenadasResolvidas.lng)
+          moverPara(coordenadasResolvidas.lat, coordenadasResolvidas.lng)
           setProcessandoLink(false)
           return
         }
@@ -223,7 +209,7 @@ export function LocationPicker({
       <div className="relative">
         <div ref={mapRef} className="w-full h-52 rounded-lg overflow-hidden border border-borderRaw" />
 
-        {/* Toggle mapa/satélite */}
+        {/* Toggle mapa/satélite, opcional, pra quem quiser conferir visualmente */}
         <button
           type="button"
           onClick={() => alternarCamada(modoMapa === 'ruas' ? 'satelite' : 'ruas')}
@@ -239,25 +225,7 @@ export function LocationPicker({
         )}
       </div>
 
-      {/* Confirmação estilo Uber/99 */}
-      {!confirmado ? (
-        <button
-          type="button"
-          onClick={() => setConfirmado(true)}
-          className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold"
-        >
-          <Check size={14} /> É aqui? Confirmar local
-        </button>
-      ) : (
-        <div className="w-full flex items-center justify-between text-[10px] font-mono py-2 px-3 rounded-lg border border-green-500/40 text-green-400">
-          <span className="flex items-center gap-2"><Check size={13} /> Local confirmado</span>
-          <button type="button" onClick={() => setConfirmado(false)} className="flex items-center gap-1 text-accent/50 hover:text-accent">
-            <Pencil size={12} /> Ajustar
-          </button>
-        </div>
-      )}
-
-      <p className="text-[9px] text-accent/40">Cole um link do Maps/Mapa ou busque o endereço ou arraste o pino/toque no mapa para aprimorar.</p>
+      <p className="text-[9px] text-accent/40">Cole um link do Maps, busque o endereço, ou arraste o pino/toque no mapa pra afinar.</p>
     </div>
   )
 }
