@@ -23,8 +23,7 @@ export function LocationPicker({
   const [processandoLink, setProcessandoLink] = useState(false)
   const [erroLink, setErroLink] = useState<string | null>(null)
 
-  const buscarEndereco = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const buscarEndereco = async () => {
     if (!termoBusca.trim()) return
     setBuscando(true)
     setErroBusca(null)
@@ -53,8 +52,7 @@ export function LocationPicker({
     setTermoBusca(resultado.display_name)
   }
 
-  const lidarComLinkColado = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const lidarComLinkColado = async () => {
     if (!linkColado.trim()) return
     setErroLink(null)
     setProcessandoLink(true)
@@ -89,32 +87,34 @@ export function LocationPicker({
 
   return (
     <div className="space-y-2">
-      <form onSubmit={lidarComLinkColado} className="flex gap-2">
+      <div className="flex gap-2">
         <input
           type="text"
           value={linkColado}
           onChange={(e) => setLinkColado(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lidarComLinkColado() } }}
           placeholder="Colar link do Google Maps ou Apple Maps"
           className="flex-1 bg-background border border-borderRaw rounded-lg p-2 text-xs"
         />
-        <button type="submit" disabled={processandoLink} className="bg-background border border-borderRaw rounded-lg px-3 text-accent/70 flex-shrink-0">
+        <button type="button" onClick={lidarComLinkColado} disabled={processandoLink} className="bg-background border border-borderRaw rounded-lg px-3 text-accent/70 flex-shrink-0">
           <Link2 size={14} />
         </button>
-      </form>
+      </div>
       {erroLink && <p className="text-[9px] text-red-400">{erroLink}</p>}
 
-      <form onSubmit={buscarEndereco} className="flex gap-2">
+      <div className="flex gap-2">
         <input
           type="text"
           value={termoBusca}
           onChange={(e) => setTermoBusca(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarEndereco() } }}
           placeholder="Ou buscar endereço (rua, número, bairro)"
           className="flex-1 bg-background border border-borderRaw rounded-lg p-2 text-xs"
         />
-        <button type="submit" disabled={buscando} className="bg-background border border-borderRaw rounded-lg px-3 text-accent/70 flex-shrink-0">
+        <button type="button" onClick={buscarEndereco} disabled={buscando} className="bg-background border border-borderRaw rounded-lg px-3 text-accent/70 flex-shrink-0">
           <Search size={14} />
         </button>
-      </form>
+      </div>
       {erroBusca && <p className="text-[9px] text-red-400">{erroBusca}</p>}
 
       {resultados.length > 0 && (
