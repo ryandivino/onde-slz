@@ -24,6 +24,7 @@ import { useRegistrarAbertura } from './hooks/useMetricas'
 import { EstatisticasPanel } from './components/EstatisticasPanel'
 import { InstallPrompt } from './components/InstallPrompt'
 import { PerfilPublicoModal } from './components/PerfilPublicoModal'
+import { LocationPicker } from './components/LocationPicker'
 import { useLotacao } from './hooks/useLotacao'
 import { EventosManager } from './components/EventosManager'
 import { AnunciosManager } from './components/AnunciosManager'
@@ -119,8 +120,8 @@ export default function App() {
   const [textoCuradoria, setTextoCuradoria] = useState('')
   const [categoriaCuradoria, setCategoriaCuradoria] = useState(CATEGORIAS_BASE[0])
   const [novaCategoria, setNovaCategoria] = useState('')
-  const [latCuradoria, setLatCuradoria] = useState('')
-  const [lngCuradoria, setLngCuradoria] = useState('')
+  const [latCuradoria, setLatCuradoria] = useState<number | null>(null)
+  const [lngCuradoria, setLngCuradoria] = useState<number | null>(null)
 
   const [relatos, setRelatos] = useState<any[]>([])
   const [filters, setFilters] = useState(['TODOS', 'AMIGOS', ...CATEGORIAS_BASE])
@@ -335,8 +336,8 @@ export default function App() {
     e.preventDefault()
     const finalCategoria = categoriaCuradoria === 'OUTRO' ? novaCategoria.toUpperCase() : categoriaCuradoria
 
-    if (!nomeLocal.trim() || !textoCuradoria.trim() || !latCuradoria || !lngCuradoria) {
-      return alert('Preencha os campos e coordenadas.')
+    if (!nomeLocal.trim() || !textoCuradoria.trim() || latCuradoria === null || lngCuradoria === null) {
+      return alert('Preencha os campos e ajuste a localização no mapa.')
     }
 
     setCarregando(true)
@@ -344,8 +345,8 @@ export default function App() {
       {
         texto: textoCuradoria,
         nome_local: nomeLocal.toUpperCase(),
-        lat: parseFloat(latCuradoria),
-        lng: parseFloat(lngCuradoria),
+        lat: latCuradoria,
+        lng: lngCuradoria,
         categoria: finalCategoria,
         is_fixed: true
       }
@@ -353,7 +354,7 @@ export default function App() {
 
     if (!error) {
       alert('Ponto fixado!')
-      setNomeLocal(''); setTextoCuradoria(''); setLatCuradoria(''); setLngCuradoria(''); setNovaCategoria('');
+      setNomeLocal(''); setTextoCuradoria(''); setLatCuradoria(null); setLngCuradoria(null); setNovaCategoria('');
       setIsCuradoriaFormOpen(false)
       buscarRelatos()
     }
@@ -696,10 +697,7 @@ export default function App() {
             </div>
             <input type="text" value={nomeLocal} onChange={(e) => setNomeLocal(e.target.value)} placeholder="Nome do Local" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <textarea value={textoCuradoria} onChange={(e) => setTextoCuradoria(e.target.value)} placeholder="Descrição" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs h-20" />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="text" value={latCuradoria} onChange={(e) => setLatCuradoria(e.target.value)} placeholder="Latitude" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />
-              <input type="text" value={lngCuradoria} onChange={(e) => setLngCuradoria(e.target.value)} placeholder="Longitude" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />
-            </div>
+            <LocationPicker lat={latCuradoria} lng={lngCuradoria} onChange={(lat, lng) => { setLatCuradoria(lat); setLngCuradoria(lng) }} />
             <select value={categoriaCuradoria} onChange={(e) => setCategoriaCuradoria(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
               {CATEGORIAS_BASE.map(c => (<option key={c} value={c}>{c}</option>))}
               <option value="OUTRO">+ OUTRO</option>

@@ -236,7 +236,7 @@ export function LocationPicker({
           onClick={() => setConfirmado(true)}
           className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold"
         >
-          <Check size={14} /> É aqui? Confirmar local.
+          <Check size={14} /> É aqui? Confirmar local
         </button>
       ) : (
         <div className="w-full flex items-center justify-between text-[10px] font-mono py-2 px-3 rounded-lg border border-green-500/40 text-green-400">

@@ -1,7 +1,12 @@
+// @ts-nocheck
 // supabase/functions/resolver-link-mapa/index.ts
 // Edge Function gratuita (dentro do plano free do Supabase).
 // Recebe um link curto (ex: maps.app.goo.gl/xxxx) e devolve o link final
 // depois do redirecionamento, de onde o cliente extrai a coordenada.
+//
+// O aviso "Cannot find name 'Deno'" no VSCode é só cosmético — essa função
+// roda no runtime Deno do Supabase, não no Node/Vite do resto do projeto,
+// e essa pasta não entra no build do app (tsc -b && vite build só olha src/).
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

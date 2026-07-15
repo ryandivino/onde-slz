@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { X, Store, LocateFixed } from 'lucide-react'
+import { LocationPicker } from './LocationPicker'
 
 const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
 
@@ -14,9 +15,8 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState('')
   const [categoria, setCategoria] = useState(CATEGORIAS_BASE[0])
   const [descricao, setDescricao] = useState('')
-  const [modoLocal, setModoLocal] = useState<'gps' | 'manual'>('gps')
-  const [lat, setLat] = useState('')
-  const [lng, setLng] = useState('')
+  const [lat, setLat] = useState<number | null>(null)
+  const [lng, setLng] = useState<number | null>(null)
   const [buscandoLocal, setBuscandoLocal] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(false)
@@ -26,12 +26,12 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
     setBuscandoLocal(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLat(pos.coords.latitude.toFixed(6))
-        setLng(pos.coords.longitude.toFixed(6))
+        setLat(pos.coords.latitude)
+        setLng(pos.coords.longitude)
         setBuscandoLocal(false)
       },
       () => {
-        setErro('Não conseguimos acessar sua localização. Preencha as coordenadas manualmente.')
+        setErro('Não conseguimos acessar sua localização. Ajuste o pino direto no mapa abaixo.')
         setBuscandoLocal(false)
       },
       { enableHighAccuracy: true }
@@ -53,15 +53,15 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
         setCarregando(false)
         return
       }
-      if (!lat || !lng) {
-        setErro('Preencha a localização (use o botão de GPS ou digite as coordenadas).')
+      if (lat === null || lng === null) {
+        setErro('Ajuste a localização no mapa antes de continuar.')
         setCarregando(false)
         return
       }
 
       const { error, precisaConfirmarEmail } = await cadastrarEmpresa(
         email, senha, apelido.trim(), nomeEstabelecimento.trim(),
-        parseFloat(lat), parseFloat(lng), categoria, descricao
+        lat, lng, categoria, descricao
       )
       if (error) setErro(error.message)
       else if (precisaConfirmarEmail) setAguardandoConfirmacao(true)
@@ -127,46 +127,17 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
                 Localização do pin no mapa
               </span>
 
-              <div className="w-full flex border border-borderRaw rounded-lg overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => { setModoLocal('gps'); setLat(''); setLng('') }}
-                  className={`flex-1 text-[10px] font-mono uppercase tracking-widest py-2 ${modoLocal === 'gps' ? 'bg-amber-500 text-background' : 'text-accent/50'}`}
-                >
-                  Usar GPS
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setModoLocal('manual'); setLat(''); setLng('') }}
-                  className={`flex-1 text-[10px] font-mono uppercase tracking-widest py-2 ${modoLocal === 'manual' ? 'bg-amber-500 text-background' : 'text-accent/50'}`}
-                >
-                  Digitar coordenadas
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={usarLocalizacaoAtual}
+                disabled={buscandoLocal}
+                className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2 rounded-lg border border-borderRaw text-accent/70"
+              >
+                <LocateFixed size={13} />
+                {buscandoLocal ? 'Buscando...' : 'Ir pra minha localização atual'}
+              </button>
 
-              {modoLocal === 'gps' ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={usarLocalizacaoAtual}
-                    disabled={buscandoLocal}
-                    className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2 rounded-lg border border-borderRaw text-accent/70"
-                  >
-                    <LocateFixed size={13} />
-                    {buscandoLocal ? 'Buscando...' : lat && lng ? 'Localização capturada ✓ (buscar de novo)' : 'Usar minha localização atual'}
-                  </button>
-                  {lat && lng && (
-                    <p className="text-[9px] text-green-400">Pin será fixado em: {lat}, {lng}</p>
-                  )}
-                </>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="text" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="Latitude" required className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />
-                  <input type="text" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="Longitude" required className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />
-                </div>
-              )}
-
-              <p className="text-[9px] text-accent/40">Essa é a posição exata do pin fixo do seu estabelecimento no mapa.</p>
+              <LocationPicker lat={lat} lng={lng} onChange={(novoLat, novoLng) => { setLat(novoLat); setLng(novoLng) }} />
             </div>
           </>
         )}
