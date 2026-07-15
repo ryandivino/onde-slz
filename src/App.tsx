@@ -336,8 +336,8 @@ export default function App() {
     e.preventDefault()
     const finalCategoria = categoriaCuradoria === 'OUTRO' ? novaCategoria.toUpperCase() : categoriaCuradoria
 
-    if (!nomeLocal.trim() || !textoCuradoria.trim() || latCuradoria === null || lngCuradoria === null) {
-      return alert('Preencha os campos e ajuste a localização no mapa.')
+    if (!nomeLocal.trim() || latCuradoria === null || lngCuradoria === null) {
+      return alert('Preencha o nome do local e defina a localização (link ou busca de endereço).')
     }
 
     setCarregando(true)
@@ -696,7 +696,7 @@ export default function App() {
               <button type="button" onClick={() => setIsCuradoriaFormOpen(false)} className="text-accent/40 hover:text-accent"><X size={16} /></button>
             </div>
             <input type="text" value={nomeLocal} onChange={(e) => setNomeLocal(e.target.value)} placeholder="Nome do Local" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
-            <textarea value={textoCuradoria} onChange={(e) => setTextoCuradoria(e.target.value)} placeholder="Descrição" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs h-20" />
+            <textarea value={textoCuradoria} onChange={(e) => setTextoCuradoria(e.target.value)} placeholder="Descrição (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs h-20" />
             <LocationPicker lat={latCuradoria} lng={lngCuradoria} onChange={(lat, lng) => { setLatCuradoria(lat); setLngCuradoria(lng) }} />
             <select value={categoriaCuradoria} onChange={(e) => setCategoriaCuradoria(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
               {CATEGORIAS_BASE.map(c => (<option key={c} value={c}>{c}</option>))}

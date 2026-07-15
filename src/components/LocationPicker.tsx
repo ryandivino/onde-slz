@@ -1,14 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import { Search, Link2, Satellite, Map as MapIcon } from 'lucide-react'
+import React, { useState } from 'react'
+import { Search, Link2, MapPin } from 'lucide-react'
 import { supabase } from '../supabase'
 import { extrairCoordenadasDoLink, ehLinkCurto } from '../utils/linkMapa'
-
-const CENTRO_PADRAO: [number, number] = [-2.5307, -44.3068] // São Luís
-
-const TILE_RUAS = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-const TILE_SATELITE = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 
 type ResultadoBusca = { display_name: string; lat: string; lon: string }
 
@@ -21,11 +14,6 @@ export function LocationPicker({
   lng: number | null
   onChange: (lat: number, lng: number) => void
 }) {
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstance = useRef<L.Map | null>(null)
-  const marcador = useRef<L.Marker | null>(null)
-  const camadaTile = useRef<L.TileLayer | null>(null)
-
   const [termoBusca, setTermoBusca] = useState('')
   const [resultados, setResultados] = useState<ResultadoBusca[]>([])
   const [buscando, setBuscando] = useState(false)
@@ -34,66 +22,6 @@ export function LocationPicker({
   const [linkColado, setLinkColado] = useState('')
   const [processandoLink, setProcessandoLink] = useState(false)
   const [erroLink, setErroLink] = useState<string | null>(null)
-
-  const [modoMapa, setModoMapa] = useState<'ruas' | 'satelite'>('ruas')
-
-  useEffect(() => {
-    if (!mapRef.current || mapInstance.current) return
-
-    const centroInicial: [number, number] = lat !== null && lng !== null ? [lat, lng] : CENTRO_PADRAO
-
-    mapInstance.current = L.map(mapRef.current, {
-      center: centroInicial,
-      zoom: 16,
-      zoomControl: true,
-      attributionControl: false
-    })
-
-    camadaTile.current = L.tileLayer(TILE_RUAS, { maxZoom: 20 }).addTo(mapInstance.current)
-
-    const icone = L.divIcon({
-      className: 'seletor-pin',
-      html: `<div style="width:22px;height:22px;background:#5e25ff;border:3px solid white;border-radius:50%;box-shadow:0 0 10px rgba(94,37,255,0.8);"></div>`,
-      iconSize: [22, 22],
-      iconAnchor: [11, 11]
-    })
-
-    marcador.current = L.marker(centroInicial, { icon: icone, draggable: true }).addTo(mapInstance.current)
-
-    marcador.current.on('dragend', () => {
-      const pos = marcador.current!.getLatLng()
-      onChange(pos.lat, pos.lng)
-    })
-
-    mapInstance.current.on('click', (e: L.LeafletMouseEvent) => {
-      marcador.current!.setLatLng(e.latlng)
-      onChange(e.latlng.lat, e.latlng.lng)
-    })
-
-    if (lat === null || lng === null) {
-      onChange(centroInicial[0], centroInicial[1])
-    }
-
-    return () => { mapInstance.current?.remove(); mapInstance.current = null }
-  }, [])
-
-  useEffect(() => {
-    if (lat === null || lng === null || !marcador.current || !mapInstance.current) return
-    marcador.current.setLatLng([lat, lng])
-    mapInstance.current.setView([lat, lng])
-  }, [lat, lng])
-
-  const alternarCamada = (modo: 'ruas' | 'satelite') => {
-    if (!mapInstance.current || !camadaTile.current) return
-    mapInstance.current.removeLayer(camadaTile.current)
-    camadaTile.current = L.tileLayer(modo === 'ruas' ? TILE_RUAS : TILE_SATELITE, { maxZoom: 20 }).addTo(mapInstance.current)
-    setModoMapa(modo)
-  }
-
-  const moverPara = (novoLat: number, novoLng: number, zoom = 17) => {
-    onChange(novoLat, novoLng)
-    mapInstance.current?.setView([novoLat, novoLng], zoom)
-  }
 
   const buscarEndereco = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -108,19 +36,19 @@ export function LocationPicker({
       const dados: ResultadoBusca[] = await resp.json()
 
       if (dados.length === 0) {
-        setErroBusca('Nenhum endereço encontrado. Tente colar um link do Maps, ou ajuste o pino direto no mapa.')
+        setErroBusca('Nenhum endereço encontrado. Tente colar um link do Maps.')
       } else {
         setResultados(dados)
       }
     } catch {
-      setErroBusca('Não foi possível buscar agora. Ajuste o pino direto no mapa.')
+      setErroBusca('Não foi possível buscar agora. Tente colar um link do Maps.')
     }
 
     setBuscando(false)
   }
 
   const irParaResultado = (resultado: ResultadoBusca) => {
-    moverPara(parseFloat(resultado.lat), parseFloat(resultado.lon))
+    onChange(parseFloat(resultado.lat), parseFloat(resultado.lon))
     setResultados([])
     setTermoBusca(resultado.display_name)
   }
@@ -134,7 +62,7 @@ export function LocationPicker({
     try {
       const coordenadasDiretas = extrairCoordenadasDoLink(linkColado)
       if (coordenadasDiretas) {
-        moverPara(coordenadasDiretas.lat, coordenadasDiretas.lng)
+        onChange(coordenadasDiretas.lat, coordenadasDiretas.lng)
         setProcessandoLink(false)
         return
       }
@@ -145,15 +73,15 @@ export function LocationPicker({
 
         const coordenadasResolvidas = extrairCoordenadasDoLink(data.finalUrl)
         if (coordenadasResolvidas) {
-          moverPara(coordenadasResolvidas.lat, coordenadasResolvidas.lng)
+          onChange(coordenadasResolvidas.lat, coordenadasResolvidas.lng)
           setProcessandoLink(false)
           return
         }
       }
 
-      setErroLink('Não consegui encontrar a coordenada nesse link. Tenta buscar pelo endereço ou ajustar o pino direto no mapa.')
+      setErroLink('Não consegui encontrar a coordenada nesse link. Tenta buscar pelo endereço.')
     } catch {
-      setErroLink('Não consegui ler esse link. Tenta buscar pelo endereço ou ajustar o pino direto no mapa.')
+      setErroLink('Não consegui ler esse link. Tenta buscar pelo endereço.')
     }
 
     setProcessandoLink(false)
@@ -161,7 +89,6 @@ export function LocationPicker({
 
   return (
     <div className="space-y-2">
-      {/* Colar link do Google Maps / Apple Maps */}
       <form onSubmit={lidarComLinkColado} className="flex gap-2">
         <input
           type="text"
@@ -176,7 +103,6 @@ export function LocationPicker({
       </form>
       {erroLink && <p className="text-[9px] text-red-400">{erroLink}</p>}
 
-      {/* Busca por endereço, como alternativa */}
       <form onSubmit={buscarEndereco} className="flex gap-2">
         <input
           type="text"
@@ -206,26 +132,11 @@ export function LocationPicker({
         </div>
       )}
 
-      <div className="relative">
-        <div ref={mapRef} className="w-full h-52 rounded-lg overflow-hidden border border-borderRaw" />
-
-        {/* Toggle mapa/satélite, opcional, pra quem quiser conferir visualmente */}
-        <button
-          type="button"
-          onClick={() => alternarCamada(modoMapa === 'ruas' ? 'satelite' : 'ruas')}
-          className="absolute top-2 right-2 z-[500] bg-background/90 border border-borderRaw rounded-lg px-2 py-1.5 text-[9px] font-mono text-accent/80 flex items-center gap-1"
-        >
-          {modoMapa === 'ruas' ? <><Satellite size={12} /> Satélite</> : <><MapIcon size={12} /> Mapa</>}
-        </button>
-
-        {modoMapa === 'satelite' && (
-          <span className="absolute bottom-1 left-1 z-[500] text-[7px] text-white/50 bg-black/40 px-1 rounded">
-            Esri, Maxar, Earthstar Geographics
-          </span>
-        )}
-      </div>
-
-      <p className="text-[9px] text-accent/40">Cole um link do Maps, busque o endereço, ou arraste o pino/toque no mapa pra afinar.</p>
+      {lat !== null && lng !== null && (
+        <p className="text-[10px] text-green-400 flex items-center gap-1.5">
+          <MapPin size={12} /> Localização definida ({lat.toFixed(5)}, {lng.toFixed(5)})
+        </p>
+      )}
     </div>
   )
 }
