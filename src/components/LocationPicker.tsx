@@ -99,6 +99,16 @@ export function LocationPicker({
     setConfirmado(false)
   }
 
+  // Usado só quando a localização vem de link/busca (não de arrastar o pino
+  // manualmente) — já pula pra visão satélite com zoom, pra pessoa ver na
+  // hora "é aqui mesmo?" sem precisar lembrar de trocar o modo do mapa.
+  const moverParaComPreviaAutomatica = (novoLat: number, novoLng: number) => {
+    onChange(novoLat, novoLng)
+    mapInstance.current?.setView([novoLat, novoLng], 19)
+    alternarCamada('satelite')
+    setConfirmado(false)
+  }
+
   const buscarEndereco = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!termoBusca.trim()) return
@@ -124,7 +134,7 @@ export function LocationPicker({
   }
 
   const irParaResultado = (resultado: ResultadoBusca) => {
-    moverPara(parseFloat(resultado.lat), parseFloat(resultado.lon))
+    moverParaComPreviaAutomatica(parseFloat(resultado.lat), parseFloat(resultado.lon))
     setResultados([])
     setTermoBusca(resultado.display_name)
   }
@@ -138,7 +148,7 @@ export function LocationPicker({
     try {
       const coordenadasDiretas = extrairCoordenadasDoLink(linkColado)
       if (coordenadasDiretas) {
-        moverPara(coordenadasDiretas.lat, coordenadasDiretas.lng)
+        moverParaComPreviaAutomatica(coordenadasDiretas.lat, coordenadasDiretas.lng)
         setProcessandoLink(false)
         return
       }
@@ -149,7 +159,7 @@ export function LocationPicker({
 
         const coordenadasResolvidas = extrairCoordenadasDoLink(data.finalUrl)
         if (coordenadasResolvidas) {
-          moverPara(coordenadasResolvidas.lat, coordenadasResolvidas.lng)
+          moverParaComPreviaAutomatica(coordenadasResolvidas.lat, coordenadasResolvidas.lng)
           setProcessandoLink(false)
           return
         }
@@ -247,7 +257,7 @@ export function LocationPicker({
         </div>
       )}
 
-      <p className="text-[9px] text-accent/40">Cole um link do Maps, busque o endereço, ou arraste o pino/toque no mapa pra afinar.</p>
+      <p className="text-[9px] text-accent/40">Cole um link do Maps/Mapa ou busque o endereço ou arraste o pino/toque no mapa para aprimorar.</p>
     </div>
   )
 }
