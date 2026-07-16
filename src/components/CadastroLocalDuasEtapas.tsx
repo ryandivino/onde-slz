@@ -34,9 +34,13 @@ export function CadastroLocalDuasEtapas({
 
       if (!coordenadas && ehLinkCurto(linkColado)) {
         const { data, error } = await supabase.functions.invoke('resolver-link-mapa', { body: { url: linkColado } })
+        console.log('[ONDE] Resposta da Edge Function:', { data, error })
+
         if (error || !data?.finalUrl) throw new Error()
         coordenadas = extrairCoordenadasDoLink(data.finalUrl)
         urlParaExtrairNome = data.finalUrl
+        console.log('[ONDE] URL final resolvida:', data.finalUrl)
+        console.log('[ONDE] Coordenadas extraídas dessa URL:', coordenadas)
       }
 
       if (!coordenadas) {
@@ -50,7 +54,8 @@ export function CadastroLocalDuasEtapas({
 
       const nomeEncontrado = extrairNomeDoLink(urlParaExtrairNome)
       setNome(nomeEncontrado || '')
-    } catch {
+    } catch (erroCapturado) {
+      console.log('[ONDE] Erro ao processar o link:', erroCapturado)
       setErro('Não consegui ler esse link. Confere se copiou certinho.')
     }
 
