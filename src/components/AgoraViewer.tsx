@@ -3,7 +3,7 @@ import { X, MapPin } from 'lucide-react'
 import { formatarTempoRelativo } from '../utils/tempo'
 import type { PostAgora } from './AgoraStories'
 
-const DURACAO_MS = 5000
+const DURACAO_MS = 15000
 
 export function AgoraViewer({
   posts,

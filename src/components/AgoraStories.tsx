@@ -28,7 +28,7 @@ export function AgoraStories({ posts, onAbrir }: { posts: PostAgora[]; onAbrir: 
             <div
               className="w-14 h-14 rounded-full flex-shrink-0"
               style={{
-                backgroundImage: 'linear-gradient(135deg, #5e25ff, #80ff00)',
+                backgroundImage: 'linear-gradient(135deg, #ff14e1, #9cff00)',
                 padding: 2
               }}
             >
