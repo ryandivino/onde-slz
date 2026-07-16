@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
-import { Link2, Check, ArrowRight } from 'lucide-react'
+import { Link2, Search, Check, ArrowRight, Loader2 } from 'lucide-react'
 import { supabase } from '../supabase'
 import { extrairCoordenadasDoLink, extrairNomeDoLink, extrairNomeEEnderecoDoLink, ehLinkCurto } from '../utils/linkMapa'
+
+type ResultadoBusca = { display_name: string; lat: string; lon: string }
 
 export function CadastroLocalDuasEtapas({
   textoBotaoFinal = 'Finalizar',
@@ -12,10 +14,18 @@ export function CadastroLocalDuasEtapas({
 }) {
   const [etapa, setEtapa] = useState<'localizacao' | 'detalhes'>('localizacao')
 
-  // Etapa 1
+  // Etapa 1 — link
   const [linkColado, setLinkColado] = useState('')
-  const [processando, setProcessando] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
+  const [processandoLink, setProcessandoLink] = useState(false)
+  const [erroLink, setErroLink] = useState<string | null>(null)
+
+  // Etapa 1 — busca de endereço (alternativa ao link)
+  const [termoBusca, setTermoBusca] = useState('')
+  const [buscandoEndereco, setBuscandoEndereco] = useState(false)
+  const [resultados, setResultados] = useState<ResultadoBusca[]>([])
+  const [erroBusca, setErroBusca] = useState<string | null>(null)
+
+  // Resultado (de qualquer uma das duas vias)
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
 
@@ -23,10 +33,18 @@ export function CadastroLocalDuasEtapas({
   const [nome, setNome] = useState('')
   const [descricao, setDescricao] = useState('')
 
+  const definirLocalizacao = (novoLat: number, novoLng: number, nomeEncontrado?: string | null) => {
+    setLat(novoLat)
+    setLng(novoLng)
+    if (nomeEncontrado) setNome(nomeEncontrado)
+    setErroLink(null)
+    setErroBusca(null)
+  }
+
   const processarLink = async () => {
     if (!linkColado.trim()) return
-    setErro(null)
-    setProcessando(true)
+    setErroLink(null)
+    setProcessandoLink(true)
 
     try {
       let coordenadas = extrairCoordenadasDoLink(linkColado)
@@ -40,13 +58,13 @@ export function CadastroLocalDuasEtapas({
         urlParaExtrairNome = data.finalUrl
       }
 
-      // Fallback: o link virou uma busca por texto (nome + endereço), sem
+      // Fallback: o link virou uma busca por texto (nome + rua/número), sem
       // coordenada direta — geocodificamos esse texto via Nominatim (gratuito).
       if (!coordenadas) {
         const infoTexto = extrairNomeEEnderecoDoLink(urlParaExtrairNome)
         if (infoTexto) {
           nomeDoTexto = infoTexto.nome
-          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(infoTexto.endereco)}&countrycodes=br&limit=1`
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(infoTexto.enderecoPrincipal)}&countrycodes=br&limit=1`
           const resp = await fetch(url)
           const dados = await resp.json()
           if (dados.length > 0) {
@@ -56,21 +74,47 @@ export function CadastroLocalDuasEtapas({
       }
 
       if (!coordenadas) {
-        setErro('Não consegui encontrar a localização nesse link. Confere se é um link de um lugar específico do Google Maps ou Apple Maps.')
-        setProcessando(false)
+        setErroLink('Não consegui encontrar a localização nesse link. Tenta buscar pelo endereço ali embaixo.')
+        setProcessandoLink(false)
         return
       }
 
-      setLat(coordenadas.lat)
-      setLng(coordenadas.lng)
-
       const nomeEncontrado = extrairNomeDoLink(urlParaExtrairNome) || nomeDoTexto
-      setNome(nomeEncontrado || '')
+      definirLocalizacao(coordenadas.lat, coordenadas.lng, nomeEncontrado)
     } catch {
-      setErro('Não consegui ler esse link. Confere se copiou certinho.')
+      setErroLink('Não consegui ler esse link. Tenta buscar pelo endereço ali embaixo.')
     }
 
-    setProcessando(false)
+    setProcessandoLink(false)
+  }
+
+  const buscarEndereco = async () => {
+    if (!termoBusca.trim()) return
+    setErroBusca(null)
+    setBuscandoEndereco(true)
+    setResultados([])
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&countrycodes=br&limit=5`
+      const resp = await fetch(url)
+      const dados: ResultadoBusca[] = await resp.json()
+
+      if (dados.length === 0) {
+        setErroBusca('Nenhum endereço encontrado. Tenta colar um link do Maps ali em cima.')
+      } else {
+        setResultados(dados)
+      }
+    } catch {
+      setErroBusca('Não foi possível buscar agora. Tenta colar um link do Maps ali em cima.')
+    }
+
+    setBuscandoEndereco(false)
+  }
+
+  const escolherResultado = (resultado: ResultadoBusca) => {
+    definirLocalizacao(parseFloat(resultado.lat), parseFloat(resultado.lon))
+    setResultados([])
+    setTermoBusca(resultado.display_name)
   }
 
   const avancarParaDetalhes = () => setEtapa('detalhes')
@@ -84,40 +128,95 @@ export function CadastroLocalDuasEtapas({
   if (etapa === 'localizacao') {
     return (
       <div className="space-y-3">
-        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">
-          Etapa 1 de 2 — Localização
-        </span>
-
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={linkColado}
-            onChange={(e) => setLinkColado(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); processarLink() } }}
-            placeholder="Colar link do Google Maps ou Apple Maps"
-            className="flex-1 bg-background border border-borderRaw rounded-lg p-2 text-xs"
-          />
-          <button
-            type="button"
-            onClick={processarLink}
-            disabled={processando}
-            className="bg-accent text-background rounded-lg px-3 flex-shrink-0"
-          >
-            <Link2 size={14} />
-          </button>
+        <div>
+          <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block mb-1">
+            Etapa 1 de 2 — Localização
+          </span>
+          <p className="text-[10px] text-accent/50">
+            Use <strong>uma das duas opções</strong> abaixo — não precisa das duas.
+          </p>
         </div>
 
-        {erro && <p className="text-[10px] text-red-400">{erro}</p>}
+        {/* Opção 1: link */}
+        <div className="space-y-1.5">
+          <span className="text-[9px] font-mono text-accent/40">OPÇÃO 1 — Colar link</span>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={linkColado}
+              onChange={(e) => setLinkColado(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); processarLink() } }}
+              placeholder="Link do Google Maps ou Apple Maps"
+              className="flex-1 bg-background border border-borderRaw rounded-lg p-2 text-xs"
+            />
+            <button
+              type="button"
+              onClick={processarLink}
+              disabled={processandoLink || !linkColado.trim()}
+              className="flex items-center gap-1.5 bg-accent text-background rounded-lg px-3 text-[10px] font-mono font-bold flex-shrink-0 disabled:opacity-40 active:scale-95"
+            >
+              {processandoLink ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+              {processandoLink ? 'Buscando...' : 'Buscar'}
+            </button>
+          </div>
+          {erroLink && <p className="text-[9px] text-red-400">{erroLink}</p>}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-px bg-borderRaw" />
+          <span className="text-[9px] font-mono text-accent/30">OU</span>
+          <div className="flex-1 h-px bg-borderRaw" />
+        </div>
+
+        {/* Opção 2: busca de endereço */}
+        <div className="space-y-1.5">
+          <span className="text-[9px] font-mono text-accent/40">OPÇÃO 2 — Buscar endereço</span>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={termoBusca}
+              onChange={(e) => setTermoBusca(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarEndereco() } }}
+              placeholder="Rua, número, bairro"
+              className="flex-1 bg-background border border-borderRaw rounded-lg p-2 text-xs"
+            />
+            <button
+              type="button"
+              onClick={buscarEndereco}
+              disabled={buscandoEndereco || !termoBusca.trim()}
+              className="flex items-center gap-1.5 bg-accent text-background rounded-lg px-3 text-[10px] font-mono font-bold flex-shrink-0 disabled:opacity-40 active:scale-95"
+            >
+              {buscandoEndereco ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+              {buscandoEndereco ? 'Buscando...' : 'Buscar'}
+            </button>
+          </div>
+          {erroBusca && <p className="text-[9px] text-red-400">{erroBusca}</p>}
+
+          {resultados.length > 0 && (
+            <div className="space-y-1 border border-borderRaw rounded-lg overflow-hidden">
+              {resultados.map((r, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => escolherResultado(r)}
+                  className="w-full text-left text-[10px] font-mono px-2 py-2 text-accent/70 hover:bg-background/60 border-b border-borderRaw/20 last:border-b-0"
+                >
+                  {r.display_name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {lat !== null && lng !== null && (
-          <div className="space-y-2">
+          <div className="space-y-2 pt-1">
             <p className="text-[11px] text-green-400 flex items-center gap-1.5">
               <Check size={13} /> Localização encontrada{nome ? ` — ${nome}` : ''}
             </p>
             <button
               type="button"
               onClick={avancarParaDetalhes}
-              className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold"
+              className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold active:scale-95"
             >
               Continuar <ArrowRight size={13} />
             </button>

@@ -44,12 +44,13 @@ export function extrairNomeDoLink(url: string): string | null {
   }
 }
 
-// Alguns links resolvidos viram uma busca por texto (.../maps?q=Nome+-+Endereço)
+// Alguns links resolvidos viram uma busca por texto (.../maps?q=Nome+-+Rua,+Num+-+Bairro+IDENTIFICADORINTERNO)
 // em vez de ter a coordenada direto — isso costuma acontecer com links de
-// estabelecimento vindos do app do Google Maps. Nesse caso, extraímos o nome
-// e o endereço em texto, pra depois geocodificar (achar a coordenada) via
-// busca de endereço gratuita (Nominatim).
-export function extrairNomeEEnderecoDoLink(url: string): { nome: string | null; endereco: string } | null {
+// estabelecimento vindos do app do Google Maps. O Google às vezes gruda um
+// identificador interno sem separador logo depois do bairro (ex: "...Centro
+// E0LDEwMDgwNDk3NUICQlI%3D") — por isso pegamos só os dois primeiros pedaços
+// (nome e rua/número), que vêm sempre limpos, e ignoramos o resto.
+export function extrairNomeEEnderecoDoLink(url: string): { nome: string | null; enderecoPrincipal: string } | null {
   const match = url.match(/[?&]q=([^&]+)/)
   if (!match) return null
 
@@ -60,8 +61,11 @@ export function extrairNomeEEnderecoDoLink(url: string): { nome: string | null; 
     if (/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(textoDecodificado)) return null
 
     const partes = textoDecodificado.split(' - ')
-    const nome = partes.length > 1 ? partes[0].trim() : null
-    return { nome, endereco: textoDecodificado }
+    if (partes.length < 2) return { nome: null, enderecoPrincipal: textoDecodificado }
+
+    const nome = partes[0].trim()
+    const enderecoPrincipal = partes[1].trim() // só rua/número — o resto pode ter lixo grudado
+    return { nome, enderecoPrincipal }
   } catch {
     return null
   }
