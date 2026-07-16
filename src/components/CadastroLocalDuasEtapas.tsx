@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link2, Check, ArrowRight } from 'lucide-react'
 import { supabase } from '../supabase'
-import { extrairCoordenadasDoLink, extrairNomeDoLink, ehLinkCurto } from '../utils/linkMapa'
+import { extrairCoordenadasDoLink, extrairNomeDoLink, extrairNomeEEnderecoDoLink, ehLinkCurto } from '../utils/linkMapa'
 
 export function CadastroLocalDuasEtapas({
   textoBotaoFinal = 'Finalizar',
@@ -31,16 +31,28 @@ export function CadastroLocalDuasEtapas({
     try {
       let coordenadas = extrairCoordenadasDoLink(linkColado)
       let urlParaExtrairNome = linkColado
+      let nomeDoTexto: string | null = null
 
       if (!coordenadas && ehLinkCurto(linkColado)) {
         const { data, error } = await supabase.functions.invoke('resolver-link-mapa', { body: { url: linkColado } })
-        console.log('[ONDE] Resposta da Edge Function:', { data, error })
-
         if (error || !data?.finalUrl) throw new Error()
         coordenadas = extrairCoordenadasDoLink(data.finalUrl)
         urlParaExtrairNome = data.finalUrl
-        console.log('[ONDE] URL final resolvida:', data.finalUrl)
-        console.log('[ONDE] Coordenadas extraídas dessa URL:', coordenadas)
+      }
+
+      // Fallback: o link virou uma busca por texto (nome + endereço), sem
+      // coordenada direta — geocodificamos esse texto via Nominatim (gratuito).
+      if (!coordenadas) {
+        const infoTexto = extrairNomeEEnderecoDoLink(urlParaExtrairNome)
+        if (infoTexto) {
+          nomeDoTexto = infoTexto.nome
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(infoTexto.endereco)}&countrycodes=br&limit=1`
+          const resp = await fetch(url)
+          const dados = await resp.json()
+          if (dados.length > 0) {
+            coordenadas = { lat: parseFloat(dados[0].lat), lng: parseFloat(dados[0].lon) }
+          }
+        }
       }
 
       if (!coordenadas) {
@@ -52,10 +64,9 @@ export function CadastroLocalDuasEtapas({
       setLat(coordenadas.lat)
       setLng(coordenadas.lng)
 
-      const nomeEncontrado = extrairNomeDoLink(urlParaExtrairNome)
+      const nomeEncontrado = extrairNomeDoLink(urlParaExtrairNome) || nomeDoTexto
       setNome(nomeEncontrado || '')
-    } catch (erroCapturado) {
-      console.log('[ONDE] Erro ao processar o link:', erroCapturado)
+    } catch {
       setErro('Não consegui ler esse link. Confere se copiou certinho.')
     }
 

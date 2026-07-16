@@ -43,3 +43,26 @@ export function extrairNomeDoLink(url: string): string | null {
     return null
   }
 }
+
+// Alguns links resolvidos viram uma busca por texto (.../maps?q=Nome+-+Endereço)
+// em vez de ter a coordenada direto — isso costuma acontecer com links de
+// estabelecimento vindos do app do Google Maps. Nesse caso, extraímos o nome
+// e o endereço em texto, pra depois geocodificar (achar a coordenada) via
+// busca de endereço gratuita (Nominatim).
+export function extrairNomeEEnderecoDoLink(url: string): { nome: string | null; endereco: string } | null {
+  const match = url.match(/[?&]q=([^&]+)/)
+  if (!match) return null
+
+  try {
+    const textoDecodificado = decodeURIComponent(match[1].replace(/\+/g, ' ')).trim()
+
+    // Se o "q" já for só uma coordenada crua, não é texto — não é esse caso
+    if (/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(textoDecodificado)) return null
+
+    const partes = textoDecodificado.split(' - ')
+    const nome = partes.length > 1 ? partes[0].trim() : null
+    return { nome, endereco: textoDecodificado }
+  } catch {
+    return null
+  }
+}
