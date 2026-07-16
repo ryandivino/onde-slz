@@ -24,7 +24,7 @@ import { useRegistrarAbertura } from './hooks/useMetricas'
 import { EstatisticasPanel } from './components/EstatisticasPanel'
 import { InstallPrompt } from './components/InstallPrompt'
 import { PerfilPublicoModal } from './components/PerfilPublicoModal'
-import { LocationPicker } from './components/LocationPicker'
+import { CadastroLocalDuasEtapas } from './components/CadastroLocalDuasEtapas'
 import { useLotacao } from './hooks/useLotacao'
 import { EventosManager } from './components/EventosManager'
 import { AnunciosManager } from './components/AnunciosManager'
@@ -116,12 +116,8 @@ export default function App() {
   const [isEmpresaOpen, setIsEmpresaOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-  const [nomeLocal, setNomeLocal] = useState('')
-  const [textoCuradoria, setTextoCuradoria] = useState('')
   const [categoriaCuradoria, setCategoriaCuradoria] = useState(CATEGORIAS_BASE[0])
   const [novaCategoria, setNovaCategoria] = useState('')
-  const [latCuradoria, setLatCuradoria] = useState<number | null>(null)
-  const [lngCuradoria, setLngCuradoria] = useState<number | null>(null)
 
   const [relatos, setRelatos] = useState<any[]>([])
   const [filters, setFilters] = useState(['TODOS', 'AMIGOS', ...CATEGORIAS_BASE])
@@ -332,21 +328,16 @@ export default function App() {
     setCarregando(false)
   }
 
-  const lidarComEnvioCuradoria = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const lidarComEnvioCuradoria = async (dados: { lat: number; lng: number; nome: string; descricao: string }) => {
     const finalCategoria = categoriaCuradoria === 'OUTRO' ? novaCategoria.toUpperCase() : categoriaCuradoria
-
-    if (!nomeLocal.trim() || latCuradoria === null || lngCuradoria === null) {
-      return alert('Preencha o nome do local e defina a localização (link ou busca de endereço).')
-    }
 
     setCarregando(true)
     const { error } = await supabase.from('pulsos').insert([
       {
-        texto: textoCuradoria,
-        nome_local: nomeLocal.toUpperCase(),
-        lat: latCuradoria,
-        lng: lngCuradoria,
+        texto: dados.descricao,
+        nome_local: dados.nome.toUpperCase(),
+        lat: dados.lat,
+        lng: dados.lng,
         categoria: finalCategoria,
         is_fixed: true
       }
@@ -354,7 +345,7 @@ export default function App() {
 
     if (!error) {
       alert('Ponto fixado!')
-      setNomeLocal(''); setTextoCuradoria(''); setLatCuradoria(null); setLngCuradoria(null); setNovaCategoria('');
+      setNovaCategoria('')
       setIsCuradoriaFormOpen(false)
       buscarRelatos()
     }
@@ -690,14 +681,12 @@ export default function App() {
 
       {isCuradoriaFormOpen && (
         <div className="fixed inset-0 bg-background/90 z-[9999] flex items-center justify-center p-4">
-          <form onSubmit={lidarComEnvioCuradoria} className="w-full max-w-md bg-surface border border-amber-500/40 rounded-2xl p-6 space-y-4">
+          <div className="w-full max-w-md bg-surface border border-amber-500/40 rounded-2xl p-6 space-y-4">
             <div className="flex justify-between">
               <span className="text-[10px] text-amber-500">CADASTRAR LOCAL</span>
               <button type="button" onClick={() => setIsCuradoriaFormOpen(false)} className="text-accent/40 hover:text-accent"><X size={16} /></button>
             </div>
-            <input type="text" value={nomeLocal} onChange={(e) => setNomeLocal(e.target.value)} placeholder="Nome do Local" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
-            <textarea value={textoCuradoria} onChange={(e) => setTextoCuradoria(e.target.value)} placeholder="Descrição (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs h-20" />
-            <LocationPicker lat={latCuradoria} lng={lngCuradoria} onChange={(lat, lng) => { setLatCuradoria(lat); setLngCuradoria(lng) }} />
+
             <select value={categoriaCuradoria} onChange={(e) => setCategoriaCuradoria(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
               {CATEGORIAS_BASE.map(c => (<option key={c} value={c}>{c}</option>))}
               <option value="OUTRO">+ OUTRO</option>
@@ -705,8 +694,9 @@ export default function App() {
             {categoriaCuradoria === 'OUTRO' && (
               <input type="text" value={novaCategoria} onChange={(e) => setNovaCategoria(e.target.value)} placeholder="Nome da nova categoria" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             )}
-            <button type="submit" className="w-full bg-amber-500 text-background py-3 text-xs font-bold uppercase rounded-lg">Salvar no Mapa</button>
-          </form>
+
+            <CadastroLocalDuasEtapas textoBotaoFinal="Salvar no Mapa" onConcluir={lidarComEnvioCuradoria} />
+          </div>
         </div>
       )}
 

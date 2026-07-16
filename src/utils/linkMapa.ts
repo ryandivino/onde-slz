@@ -28,3 +28,18 @@ export function extrairCoordenadasDoLink(url: string): { lat: number; lng: numbe
 export function ehLinkCurto(url: string): boolean {
   return /maps\.app\.goo\.gl|goo\.gl\/maps/.test(url)
 }
+
+// Tenta extrair o nome do local a partir de um link de lugar específico do
+// Google Maps (ex: .../maps/place/Bar+do+Fulano/@...). Só funciona quando o
+// link é de um lugar buscado por nome — links genéricos de área não têm isso.
+export function extrairNomeDoLink(url: string): string | null {
+  const match = url.match(/maps\/place\/([^/@]+)/)
+  if (!match) return null
+
+  try {
+    const nomeDecodificado = decodeURIComponent(match[1].replace(/\+/g, ' '))
+    return nomeDecodificado.trim() || null
+  } catch {
+    return null
+  }
+}
