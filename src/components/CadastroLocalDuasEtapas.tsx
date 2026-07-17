@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link2, Search, Check, ArrowRight, Loader2 } from 'lucide-react'
+import { Link2, Search, Check, ArrowRight, Loader2, ExternalLink } from 'lucide-react'
 import { supabase } from '../supabase'
 import { extrairCoordenadasDoLink, extrairNomeDoLink, extrairNomeEEnderecoDoLink, ehLinkCurto } from '../utils/linkMapa'
 
@@ -215,6 +215,14 @@ export function CadastroLocalDuasEtapas({
             <p className="text-[11px] text-green-400 flex items-center gap-1.5">
               <Check size={13} /> Localização encontrada{nome ? ` — ${nome}` : ''}
             </p>
+            <a
+              href={`https://www.google.com/maps?q=${lat},${lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-[10px] text-accent/50 underline w-fit"
+            >
+              <ExternalLink size={11} /> Conferir esse ponto no mapa antes de continuar
+            </a>
             <button
               type="button"
               onClick={avancarParaDetalhes}
