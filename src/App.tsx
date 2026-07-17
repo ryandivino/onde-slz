@@ -448,7 +448,7 @@ export default function App() {
 
           <button
             onClick={abrirAgora}
-            style={{ backgroundImage: 'linear-gradient(to bottom right, #ff14e1, #9cff00' }}
+            style={{ backgroundImage: 'linear-gradient(to bottom right, #ff14e1, #9cff00)' }}
             className="pointer-events-auto rounded-xl text-white font-mono text-xs font-bold px-6 py-3 shadow-xl active:scale-95 flex items-center gap-1.5"
           >
             <Camera size={14} strokeWidth={2.5} />

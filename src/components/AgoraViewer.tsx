@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { X, MapPin } from 'lucide-react'
 import { formatarTempoRelativo } from '../utils/tempo'
+import { useAgoraVistos } from '../hooks/useAgoraVistos'
 import type { PostAgora } from './AgoraStories'
 
-const DURACAO_MS = 15000
+const DURACAO_MS = 5000
 
 export function AgoraViewer({
   posts,
@@ -18,9 +19,13 @@ export function AgoraViewer({
 }) {
   const [indice, setIndice] = useState(indiceInicial)
   const [progresso, setProgresso] = useState(0)
+  const { marcarComoVisto } = useAgoraVistos()
 
   useEffect(() => {
     setProgresso(0)
+    const postAtual = posts[indice]
+    if (postAtual) marcarComoVisto(postAtual.id)
+
     const passoMs = 50
     const intervalo = setInterval(() => {
       setProgresso((p) => {

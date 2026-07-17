@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Camera, RotateCcw, Check, X, SwitchCamera } from 'lucide-react'
+import { RotateCcw, Check, X, RefreshCw } from 'lucide-react'
 
 export function CameraCapture({
   onFotoCapturada,
@@ -25,8 +25,15 @@ export function CameraCapture({
   const iniciarCamera = async () => {
     pararCamera()
     try {
+      // Pede a maior resolução disponível na câmera (o navegador ajusta pra
+      // baixo se o aparelho não suportar 1920x1080 — isso só evita que ele
+      // já comece pedindo uma resolução baixa por padrão).
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: modoCamera },
+        video: {
+          facingMode: modoCamera,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
         audio: false
       })
       streamRef.current = stream
@@ -50,18 +57,21 @@ export function CameraCapture({
     if (!videoRef.current || !canvasRef.current) return
     const video = videoRef.current
     const canvas = canvasRef.current
+    // Usa a resolução real do vídeo (não uma fixa), pra não perder qualidade
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
+    // Qualidade máxima de JPEG (0.95 já é praticamente sem perda visível —
+    // 1.0 quase não melhora a imagem e só deixa o arquivo maior à toa)
     canvas.toBlob((blob) => {
       if (!blob) return
       setFotoBlob(blob)
       setFotoPreview(URL.createObjectURL(blob))
       pararCamera() // não precisa mais do stream ao vivo depois de capturar
-    }, 'image/jpeg', 0.9)
+    }, 'image/jpeg', 0.95)
   }
 
   const tirarDeNovo = () => {
@@ -99,28 +109,29 @@ export function CameraCapture({
         >
           <X size={20} />
         </button>
-
-        {!fotoPreview && !erro && (
-          <button
-            onClick={trocarCamera}
-            className="absolute top-4 left-4 bg-background/60 rounded-full p-2 text-white"
-          >
-            <SwitchCamera size={20} />
-          </button>
-        )}
       </div>
 
-      <div className="p-6 flex items-center justify-center gap-8 bg-black">
+      <div className="p-6 flex items-center justify-center relative bg-black">
         {!fotoPreview ? (
-          <button
-            onClick={capturar}
-            disabled={!!erro}
-            className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center disabled:opacity-30"
-          >
-            <div className="w-12 h-12 rounded-full bg-white" />
-          </button>
-        ) : (
           <>
+            {!erro && (
+              <button
+                onClick={trocarCamera}
+                className="absolute left-8 bg-background/60 rounded-full p-3 text-white"
+              >
+                <RefreshCw size={20} />
+              </button>
+            )}
+            <button
+              onClick={capturar}
+              disabled={!!erro}
+              className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center disabled:opacity-30"
+            >
+              <div className="w-12 h-12 rounded-full bg-white" />
+            </button>
+          </>
+        ) : (
+          <div className="flex items-center justify-center gap-8">
             <button onClick={tirarDeNovo} className="flex flex-col items-center gap-1 text-white/70 text-[10px] font-mono uppercase">
               <RotateCcw size={22} />
               Tirar de novo
@@ -131,7 +142,7 @@ export function CameraCapture({
               </div>
               Usar foto
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useAgoraVistos } from '../hooks/useAgoraVistos'
 
 export type PostAgora = {
   id: number
@@ -11,6 +12,8 @@ export type PostAgora = {
 }
 
 export function AgoraStories({ posts, onAbrir }: { posts: PostAgora[]; onAbrir: (indice: number) => void }) {
+  const { vistos } = useAgoraVistos()
+
   if (posts.length === 0) return null
 
   return (
@@ -19,33 +22,37 @@ export function AgoraStories({ posts, onAbrir }: { posts: PostAgora[]; onAbrir: 
       style={{ top: 'calc(4rem + env(safe-area-inset-top))' }}
     >
       <div className="flex gap-3 overflow-x-auto px-4 py-1 pointer-events-auto no-scrollbar">
-        {posts.map((post, indice) => (
-          <button
-            key={post.id}
-            onClick={() => onAbrir(indice)}
-            className="flex flex-col items-center gap-1 flex-shrink-0 w-14"
-          >
-            <div
-              className="w-14 h-14 rounded-full flex-shrink-0"
-              style={{
-                backgroundImage: 'linear-gradient(135deg, #ff14e1, #9cff00)',
-                padding: 2
-              }}
+        {posts.map((post, indice) => {
+          const jaVisto = vistos.has(post.id)
+          return (
+            <button
+              key={post.id}
+              onClick={() => onAbrir(indice)}
+              className="flex flex-col items-center gap-1 flex-shrink-0 w-14"
             >
               <div
-                className="w-full h-full rounded-full bg-background border-2 border-background"
+                className="w-14 h-14 rounded-full flex-shrink-0"
                 style={{
-                  backgroundImage: `url('${post.image_url}')`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
+                  backgroundImage: jaVisto ? undefined : 'linear-gradient(135deg, #ff14e1, #9cff00)',
+                  backgroundColor: jaVisto ? '#3a3a3a' : undefined,
+                  padding: 2
                 }}
-              />
-            </div>
-            <span className="text-[8px] font-mono text-accent/70 truncate w-full text-center">
-              {post.apelido || 'ANÔNIMO'}
-            </span>
-          </button>
-        ))}
+              >
+                <div
+                  className="w-full h-full rounded-full bg-background border-2 border-background"
+                  style={{
+                    backgroundImage: `url('${post.image_url}')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
+                />
+              </div>
+              <span className="text-[8px] font-mono text-accent/70 truncate w-full text-center">
+                {post.apelido || 'ANÔNIMO'}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

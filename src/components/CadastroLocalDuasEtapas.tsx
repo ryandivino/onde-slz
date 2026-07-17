@@ -64,7 +64,8 @@ export function CadastroLocalDuasEtapas({
         const infoTexto = extrairNomeEEnderecoDoLink(urlParaExtrairNome)
         if (infoTexto) {
           nomeDoTexto = infoTexto.nome
-          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(infoTexto.enderecoPrincipal)}&countrycodes=br&limit=1`
+          const enderecoComCidade = `${infoTexto.enderecoPrincipal}, São Luís, Maranhão, Brasil`
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoComCidade)}&countrycodes=br&viewbox=-44.50,-2.20,-44.05,-2.70&bounded=1&limit=1`
           const resp = await fetch(url)
           const dados = await resp.json()
           if (dados.length > 0) {
@@ -95,7 +96,8 @@ export function CadastroLocalDuasEtapas({
     setResultados([])
 
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&countrycodes=br&limit=5`
+      const termoComCidade = `${termoBusca}, São Luís, Maranhão, Brasil`
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoComCidade)}&countrycodes=br&viewbox=-44.50,-2.20,-44.05,-2.70&bounded=1&limit=5`
       const resp = await fetch(url)
       const dados: ResultadoBusca[] = await resp.json()
 
