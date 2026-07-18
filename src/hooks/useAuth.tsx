@@ -147,7 +147,14 @@ function useAuthState() {
     lat: number,
     lng: number,
     categoria: string,
-    descricao: string
+    descricao: string,
+    dadosExtras?: {
+      telefone?: string
+      site?: string
+      horarioFuncionamento?: string
+      endereco?: string
+      atributos?: Record<string, boolean>
+    }
   ) => {
     const apelidoLimpo = apelido.trim()
 
@@ -166,7 +173,12 @@ function useAuthState() {
           lat,
           lng,
           categoria,
-          descricao: descricao.trim()
+          descricao: descricao.trim(),
+          telefone: dadosExtras?.telefone?.trim() || null,
+          site: dadosExtras?.site?.trim() || null,
+          horario_funcionamento: dadosExtras?.horarioFuncionamento?.trim() || null,
+          endereco: dadosExtras?.endereco?.trim() || null,
+          atributos: dadosExtras?.atributos || {}
         },
         emailRedirectTo: window.location.origin
       }

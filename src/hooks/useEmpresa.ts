@@ -10,6 +10,8 @@ export type Empresa = {
   instagram: string | null
   site: string | null
   horario_funcionamento: string | null
+  endereco: string | null
+  atributos: Record<string, boolean>
 }
 
 export function useEmpresa() {

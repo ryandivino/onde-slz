@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
-import { X, Store, Phone, AtSign, Globe, Clock } from 'lucide-react'
+import { X, Store, Phone, AtSign, Globe, Clock, MapPin } from 'lucide-react'
+import { ATRIBUTOS_DISPONIVEIS } from './AtributosEstabelecimento'
 
 type PerfilPublico = {
   apelido: string
@@ -16,6 +17,8 @@ type EmpresaPublica = {
   instagram: string | null
   site: string | null
   horario_funcionamento: string | null
+  endereco: string | null
+  atributos: Record<string, boolean>
 }
 
 export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClose: () => void }) {
@@ -40,7 +43,7 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
       if (dadosPerfil?.is_empresa) {
         const { data: dadosEmpresa } = await supabase
           .from('empresas')
-          .select('nome_estabelecimento, telefone, instagram, site, horario_funcionamento')
+          .select('nome_estabelecimento, telefone, instagram, site, horario_funcionamento, endereco, atributos')
           .eq('id', userId)
           .single()
         if (!cancelado) setEmpresa(dadosEmpresa || null)
@@ -91,6 +94,11 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
                 <span className="text-[9px] font-mono text-amber-500 uppercase tracking-widest flex items-center gap-1.5">
                   <Store size={12} /> {empresa.nome_estabelecimento}
                 </span>
+                {empresa.endereco && (
+                  <div className="flex items-center gap-2 text-xs text-accent/70">
+                    <MapPin size={13} className="flex-shrink-0" /> {empresa.endereco}
+                  </div>
+                )}
                 {empresa.horario_funcionamento && (
                   <div className="flex items-center gap-2 text-xs text-accent/70">
                     <Clock size={13} className="flex-shrink-0" /> {empresa.horario_funcionamento}
@@ -109,6 +117,16 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
                 {empresa.site && (
                   <div className="flex items-center gap-2 text-xs text-accent/70">
                     <Globe size={13} className="flex-shrink-0" /> {empresa.site}
+                  </div>
+                )}
+
+                {ATRIBUTOS_DISPONIVEIS.some(({ chave }) => empresa.atributos?.[chave]) && (
+                  <div className="flex flex-wrap gap-2 pt-2 border-t border-borderRaw/10">
+                    {ATRIBUTOS_DISPONIVEIS.filter(({ chave }) => empresa.atributos?.[chave]).map(({ chave, label, Icone }) => (
+                      <div key={chave} title={label} className="flex items-center gap-1 text-[9px] text-accent/60 bg-background/40 rounded px-2 py-1">
+                        <Icone size={12} /> {label}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
