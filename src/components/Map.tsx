@@ -196,7 +196,7 @@ export function Map({ dados, foco, mostrarCalor, pontosExtras }: { dados: any[];
           <div class="font-mono text-[10px] text-black">
             <strong class="block mb-1">${relato.nome_local || relato.apelido || 'ANÔNIMO'}</strong>
             <p>"${relato.texto}"</p>
-            <span class="italic text-gray-500">${formatarTempoRelativo(relato.created_at)}</span>
+            ${relato.is_fixed ? '' : `<span class="italic text-gray-500">${formatarTempoRelativo(relato.created_at)}</span>`}
           </div>
         `)
     })

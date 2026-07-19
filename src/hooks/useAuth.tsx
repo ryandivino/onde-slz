@@ -154,6 +154,7 @@ function useAuthState() {
       horarioFuncionamento?: string
       endereco?: string
       atributos?: Record<string, boolean>
+      pulsoReivindicadoId?: number
     }
   ) => {
     const apelidoLimpo = apelido.trim()
@@ -178,7 +179,8 @@ function useAuthState() {
           site: dadosExtras?.site?.trim() || null,
           horario_funcionamento: dadosExtras?.horarioFuncionamento?.trim() || null,
           endereco: dadosExtras?.endereco?.trim() || null,
-          atributos: dadosExtras?.atributos || {}
+          atributos: dadosExtras?.atributos || {},
+          claimed_pulso_id: dadosExtras?.pulsoReivindicadoId ?? null
         },
         emailRedirectTo: window.location.origin
       }

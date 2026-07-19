@@ -148,6 +148,21 @@ export function LoginScreen({ onClose }: { onClose: () => void }) {
           />
         )}
 
+        {modo === 'entrar' && erro && (
+          <div className="space-y-1.5">
+            <p className="text-[9px] text-accent/50">
+              Se você tem certeza da senha, talvez esse e-mail ainda não tenha conta por aqui.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setModo('cadastrar'); setErro(null) }}
+              className="text-[10px] font-mono text-accent/60 underline"
+            >
+              Criar conta com esse e-mail
+            </button>
+          </div>
+        )}
+
         {modo === 'entrar' && tentativas > 0 && (
           <button
             type="button"

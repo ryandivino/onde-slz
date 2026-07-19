@@ -24,8 +24,14 @@ export function MapaLocalPicker({
   const marcador = useRef<L.Marker | null>(null)
   const camadaTile = useRef<L.TileLayer | null>(null)
 
-  // Satélite é o padrão — é o que permite reconhecer o prédio visualmente,
-  // já que o mapa de ruas não tem nome de estabelecimento nenhum.
+  // Diferente de checar "lat !== null" (que fica true logo de cara, porque
+  // a posição padrão já é gravada assim que o mapa monta) — isso aqui só
+  // vira true quando o USUÁRIO de fato arrasta ou toca no mapa. Sem essa
+  // distinção, a geocodificação do endereço (que chega um pouco depois,
+  // é assíncrona) nunca conseguia mover o pino: o código achava que "já
+  // tinha uma posição definida" e ignorava a sugestão.
+  const ajustadoManualmente = useRef(false)
+
   const [modoMapa, setModoMapa] = useState<'satelite' | 'ruas'>('satelite')
 
   useEffect(() => {
@@ -55,11 +61,13 @@ export function MapaLocalPicker({
     marcador.current = L.marker(centroInicial, { icon: icone, draggable: true }).addTo(mapInstance.current)
 
     marcador.current.on('dragend', () => {
+      ajustadoManualmente.current = true
       const pos = marcador.current!.getLatLng()
       onChange(pos.lat, pos.lng)
     })
 
     mapInstance.current.on('click', (e: L.LeafletMouseEvent) => {
+      ajustadoManualmente.current = true
       marcador.current!.setLatLng(e.latlng)
       onChange(e.latlng.lat, e.latlng.lng)
     })
@@ -73,7 +81,7 @@ export function MapaLocalPicker({
 
   useEffect(() => {
     if (!centroSugerido || !mapInstance.current || !marcador.current) return
-    if (lat !== null && lng !== null) return
+    if (ajustadoManualmente.current) return
     marcador.current.setLatLng([centroSugerido.lat, centroSugerido.lng])
     mapInstance.current.setView([centroSugerido.lat, centroSugerido.lng], 18)
     onChange(centroSugerido.lat, centroSugerido.lng)

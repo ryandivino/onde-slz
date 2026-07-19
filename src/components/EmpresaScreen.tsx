@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { X, Store, ArrowRight, ArrowLeft } from 'lucide-react'
+import { supabase } from '../supabase'
+import { X, Store, ArrowRight, ArrowLeft, Search } from 'lucide-react'
 import { MapaLocalPicker } from './MapaLocalPicker'
 import { AtributosEstabelecimento } from './AtributosEstabelecimento'
 import type { Atributos } from './AtributosEstabelecimento'
@@ -8,13 +9,20 @@ import { geocodificarEndereco } from '../utils/geocodificarEndereco'
 
 const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
 
-type Etapa = 'dados' | 'endereco' | 'mapa' | 'conta'
+type Etapa = 'buscar' | 'dados' | 'endereco' | 'mapa' | 'conta'
+type LocalEncontrado = { id: number; nome_local: string; categoria: string; lat: number; lng: number }
 
 export function EmpresaScreen({ onClose }: { onClose: () => void }) {
   const { entrar, cadastrarEmpresa } = useAuth()
 
   const [modo, setModo] = useState<'entrar' | 'cadastrar'>('cadastrar')
-  const [etapa, setEtapa] = useState<Etapa>('dados')
+  const [etapa, setEtapa] = useState<Etapa>('buscar')
+
+  // Etapa 0 — buscar se já existe um pré-cadastro feito pelo moderador
+  const [termoBuscaLocal, setTermoBuscaLocal] = useState('')
+  const [buscandoLocal, setBuscandoLocal] = useState(false)
+  const [locaisEncontrados, setLocaisEncontrados] = useState<LocalEncontrado[]>([])
+  const [pulsoReivindicado, setPulsoReivindicado] = useState<LocalEncontrado | null>(null)
 
   // Etapa 1 — dados
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState('')
@@ -60,6 +68,35 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
     setCarregando(false)
   }
 
+  const buscarLocalExistente = async () => {
+    if (!termoBuscaLocal.trim()) return
+    setBuscandoLocal(true)
+    setLocaisEncontrados([])
+    const { data } = await supabase
+      .from('pulsos')
+      .select('id, nome_local, categoria, lat, lng')
+      .eq('is_fixed', true)
+      .is('user_id', null)
+      .ilike('nome_local', `%${termoBuscaLocal.trim()}%`)
+      .limit(5)
+    setLocaisEncontrados(data || [])
+    setBuscandoLocal(false)
+  }
+
+  const reivindicarLocal = (local: LocalEncontrado) => {
+    setPulsoReivindicado(local)
+    setNomeEstabelecimento(local.nome_local)
+    setCategoria(CATEGORIAS_BASE.includes(local.categoria) ? local.categoria : CATEGORIAS_BASE[0])
+    setLat(local.lat)
+    setLng(local.lng)
+    setEtapa('dados')
+  }
+
+  const cadastrarLocalNovo = () => {
+    setPulsoReivindicado(null)
+    setEtapa('dados')
+  }
+
   const irParaEndereco = () => {
     if (!nomeEstabelecimento.trim()) { setErro('Preencha o nome do estabelecimento.'); return }
     setErro(null)
@@ -95,7 +132,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
     const { error, precisaConfirmarEmail } = await cadastrarEmpresa(
       email, senha, apelido.trim(), nomeEstabelecimento.trim(),
       lat, lng, categoria, '',
-      { telefone, site, horarioFuncionamento: horario, endereco: enderecoCompleto(), atributos }
+      { telefone, site, horarioFuncionamento: horario, endereco: enderecoCompleto(), atributos, pulsoReivindicadoId: pulsoReivindicado?.id }
     )
 
     if (error) setErro(error.message)
@@ -121,7 +158,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
     )
   }
 
-  const numeroEtapa = { dados: 1, endereco: 2, mapa: 3, conta: 4 }[etapa]
+  const numeroEtapa = { buscar: 0, dados: 1, endereco: 2, mapa: 3, conta: 4 }[etapa]
 
   return (
     <div className="fixed inset-0 bg-background/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
@@ -129,7 +166,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
         <div className="flex justify-between items-center border-b border-borderRaw/40 pb-2">
           <span className="text-[10px] font-mono tracking-widest text-amber-500 flex items-center gap-2">
             <Store size={14} />
-            {modo === 'entrar' ? 'ENTRAR (ESTABELECIMENTO)' : `CADASTRAR ESTABELECIMENTO — ${numeroEtapa}/4`}
+            {modo === 'entrar' ? 'ENTRAR (ESTABELECIMENTO)' : etapa === 'buscar' ? 'CADASTRAR ESTABELECIMENTO' : `CADASTRAR ESTABELECIMENTO — ${numeroEtapa}/4`}
           </span>
           <button type="button" onClick={onClose} className="text-accent/40 hover:text-accent"><X size={16} /></button>
         </div>
@@ -143,12 +180,69 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
             <button type="button" onClick={handleEntrar} disabled={carregando} className="w-full bg-amber-500 text-background font-bold py-3 uppercase rounded-lg text-xs">
               {carregando ? 'AGUARDE...' : 'ENTRAR'}
             </button>
+            {erro && (
+              <div className="space-y-1">
+                <p className="text-[9px] text-accent/50">Se a senha estiver certa, talvez esse e-mail ainda não tenha cadastro de estabelecimento.</p>
+                <button type="button" onClick={() => { setModo('cadastrar'); setErro(null); setEtapa('buscar') }} className="text-[10px] font-mono text-accent/60 underline">
+                  Cadastrar estabelecimento com esse e-mail
+                </button>
+              </div>
+            )}
           </>
+        )}
+
+        {modo === 'cadastrar' && etapa === 'buscar' && (
+          <div className="space-y-3">
+            <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">
+              Seu estabelecimento já está no mapa?
+            </span>
+            <p className="text-[10px] text-accent/50">
+              Um moderador pode já ter fixado seu local no ONDE. Busca pelo nome antes de cadastrar do zero.
+            </p>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={termoBuscaLocal}
+                onChange={(e) => setTermoBuscaLocal(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarLocalExistente() } }}
+                placeholder="Nome do seu estabelecimento"
+                className="flex-1 bg-background border border-borderRaw rounded-lg p-2 text-xs"
+              />
+              <button type="button" onClick={buscarLocalExistente} disabled={buscandoLocal} className="bg-accent text-background rounded-lg px-3 flex-shrink-0">
+                <Search size={14} />
+              </button>
+            </div>
+
+            {buscandoLocal && <p className="text-[10px] text-accent/40">Buscando...</p>}
+
+            {!buscandoLocal && locaisEncontrados.length > 0 && (
+              <div className="space-y-1.5">
+                {locaisEncontrados.map((local) => (
+                  <button
+                    key={local.id}
+                    type="button"
+                    onClick={() => reivindicarLocal(local)}
+                    className="w-full text-left text-[10px] font-mono px-3 py-2 rounded-lg border border-borderRaw text-accent/70 hover:bg-background/60"
+                  >
+                    📍 {local.nome_local} <span className="text-accent/40">— {local.categoria}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button type="button" onClick={cadastrarLocalNovo} className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold">
+              Não encontrei — Adicionar novo local <ArrowRight size={13} />
+            </button>
+          </div>
         )}
 
         {modo === 'cadastrar' && etapa === 'dados' && (
           <div className="space-y-3">
             <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Etapa 1 — Dados do estabelecimento</span>
+            {pulsoReivindicado && (
+              <p className="text-[9px] text-green-400">📍 Usando o local "{pulsoReivindicado.nome_local}" já fixado no mapa — os dados abaixo vão sobrepor o que o moderador colocou.</p>
+            )}
             <input type="text" value={nomeEstabelecimento} onChange={(e) => setNomeEstabelecimento(e.target.value)} placeholder="Nome do estabelecimento *" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
               {CATEGORIAS_BASE.map((c) => (<option key={c} value={c}>{c}</option>))}
@@ -159,9 +253,14 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
 
             <AtributosEstabelecimento atributos={atributos} onChange={setAtributos} />
 
-            <button type="button" onClick={irParaEndereco} className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold">
-              Continuar <ArrowRight size={13} />
-            </button>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setEtapa('buscar')} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg border border-borderRaw text-accent/60">
+                <ArrowLeft size={13} /> Voltar
+              </button>
+              <button type="button" onClick={irParaEndereco} className="flex-1 flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold">
+                Continuar <ArrowRight size={13} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -226,7 +325,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
 
         <button
           type="button"
-          onClick={() => { setModo(modo === 'entrar' ? 'cadastrar' : 'entrar'); setErro(null); setEtapa('dados') }}
+          onClick={() => { setModo(modo === 'entrar' ? 'cadastrar' : 'entrar'); setErro(null); setEtapa('buscar') }}
           className="w-full text-[10px] font-mono text-accent/50 text-center underline"
         >
           {modo === 'entrar' ? 'Ainda não tem cadastro? Cadastrar estabelecimento' : 'Já tem conta de estabelecimento? Entrar'}
