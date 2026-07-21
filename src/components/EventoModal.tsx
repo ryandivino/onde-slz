@@ -3,6 +3,7 @@ import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
 import { X, Calendar, Camera } from 'lucide-react'
 import { MapaLocalPicker } from './MapaLocalPicker'
+import { geocodificarEndereco } from '../utils/geocodificarEndereco'
 
 const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
 
@@ -17,6 +18,14 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
   const [foto, setFoto] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
 
+  const [rua, setRua] = useState('')
+  const [numero, setNumero] = useState('')
+  const [bairro, setBairro] = useState('')
+  const [cidade, setCidade] = useState('São Luís')
+  const [estado, setEstado] = useState('MA')
+  const [centroSugerido, setCentroSugerido] = useState<{ lat: number; lng: number } | null>(null)
+  const [geocodificando, setGeocodificando] = useState(false)
+
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
 
@@ -30,6 +39,20 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
       { enableHighAccuracy: true }
     )
   }, [])
+
+  const enderecoCompleto = () => {
+    const partes = [rua && numero ? `${rua}, ${numero}` : rua, bairro, cidade, estado].filter(Boolean)
+    return partes.join(' - ')
+  }
+
+  const buscarEnderecoNoMapa = async () => {
+    const endereco = enderecoCompleto()
+    if (!endereco) return
+    setGeocodificando(true)
+    const resultado = await geocodificarEndereco(endereco)
+    if (resultado) setCentroSugerido(resultado)
+    setGeocodificando(false)
+  }
 
   const lidarComFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const arquivo = e.target.files?.[0]
@@ -65,6 +88,7 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
         data_hora: new Date(dataHora).toISOString(),
         lat,
         lng,
+        endereco: enderecoCompleto() || null,
         link_ingresso: linkIngresso.trim() || null,
         image_url: imageUrl,
         user_id: session.user.id
@@ -101,7 +125,7 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
 
         <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição (opcional)" className="w-full h-16 bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
-        <input type="text" value={linkIngresso} onChange={(e) => setLinkIngresso(e.target.value)} placeholder="Link de ingressos (opcional — Sympla, Eventbrite, etc.)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+        <input type="text" value={linkIngresso} onChange={(e) => setLinkIngresso(e.target.value)} placeholder="Link de ingressos (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
         <label className="flex items-center gap-2 text-[10px] font-mono text-accent/60 cursor-pointer">
           <Camera size={14} />
@@ -110,8 +134,27 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
         </label>
         {fotoPreview && <img src={fotoPreview} alt="Prévia" className="w-full rounded-lg border border-borderRaw max-h-32 object-cover" />}
 
+        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Endereço do evento (opcional)</span>
+        <input type="text" value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Rua" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+        <div className="grid grid-cols-2 gap-2">
+          <input type="text" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Número" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+          <input type="text" value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Bairro" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <input type="text" value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Cidade" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+          <input type="text" value={estado} onChange={(e) => setEstado(e.target.value)} placeholder="Estado" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+        </div>
+        <button
+          type="button"
+          onClick={buscarEnderecoNoMapa}
+          disabled={geocodificando || !rua.trim()}
+          className="w-full text-[10px] font-mono uppercase tracking-widest py-2 rounded-lg border border-borderRaw text-accent/70 disabled:opacity-40"
+        >
+          {geocodificando ? 'Localizando...' : 'Levar o pino pra esse endereço'}
+        </button>
+
         <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Local do evento</span>
-        <MapaLocalPicker lat={lat} lng={lng} onChange={(novoLat, novoLng) => { setLat(novoLat); setLng(novoLng) }} />
+        <MapaLocalPicker lat={lat} lng={lng} centroSugerido={centroSugerido} onChange={(novoLat, novoLng) => { setLat(novoLat); setLng(novoLng) }} />
 
         <button type="button" onClick={publicar} disabled={enviando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs">
           {enviando ? 'PUBLICANDO...' : 'PUBLICAR EVENTO'}

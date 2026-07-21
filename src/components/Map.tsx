@@ -1,12 +1,58 @@
 import React, { useEffect, useRef } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
+import 'leaflet.markercluster'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
+import { Beer, UtensilsCrossed, Palette, MapPin, Calendar } from 'lucide-react'
 import { formatarTempoRelativo } from '../utils/tempo'
 
 type Foco = { lat: number; lng: number; ts: number } | null
 
-const CENTRO_PADRAO: [number, number] = [-2.5307, -44.3068] // fallback: São Luís
+const CENTRO_PADRAO: [number, number] = [-2.5307, -44.3068]
+const ZOOM_MINIMO_PARA_NOME = 16
+
+const ICONE_POR_CATEGORIA: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
+  BARES: Beer,
+  RESTAURANTES: UtensilsCrossed,
+  CULTURA: Palette
+}
+
+function svgComoTexto(Icone: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>, cor: string) {
+  return renderToStaticMarkup(<Icone size={15} color={cor} strokeWidth={2.4} />)
+}
+
+// Quando vários pins ficam muito próximos (ex: um bar cheio, todo mundo
+// dando AGORA ao mesmo tempo), em vez de empilhar um por cima do outro,
+// agrupa num círculo com o número — clica ou dá zoom pra abrir e ver
+// cada um separado. Visual customizado pra combinar com a marca, em vez
+// do azul/laranja padrão do leaflet.markercluster.
+function criarIconeCluster(cluster: any) {
+  const quantidade = cluster.getChildCount()
+  const tamanho = quantidade >= 20 ? 46 : quantidade >= 8 ? 40 : 34
+
+  return L.divIcon({
+    className: 'cluster-pin',
+    html: `
+      <div style="
+        width: ${tamanho}px; height: ${tamanho}px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ff14e1, #9cff00);
+        border: 2px solid white;
+        display: flex; align-items: center; justify-content: center;
+        color: #0a0a0a;
+        font-family: monospace;
+        font-weight: bold;
+        font-size: ${tamanho >= 40 ? 14 : 12}px;
+        box-shadow: 0 0 12px rgba(255,20,225,0.7);
+      ">${quantidade}</div>
+    `,
+    iconSize: [tamanho, tamanho],
+    iconAnchor: [tamanho / 2, tamanho / 2]
+  })
+}
 
 const iconeMeuLocal = L.divIcon({
   className: 'meu-local-pin',
@@ -39,10 +85,124 @@ const iconeMeuLocal = L.divIcon({
   iconAnchor: [10, 10]
 })
 
-export function Map({ dados, foco, mostrarCalor, pontosExtras }: { dados: any[]; foco?: Foco; mostrarCalor?: boolean; pontosExtras?: Array<[number, number, number]> }) {
+function criarIconeLocalFixo(nome: string, categoria: string) {
+  const Icone = ICONE_POR_CATEGORIA[categoria] || MapPin
+  const svg = svgComoTexto(Icone, '#0a0a0a')
+
+  return L.divIcon({
+    className: 'local-fixo-pin',
+    html: `
+      <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+        <div class="nome-label" style="
+          background: rgba(10,10,10,0.85);
+          color: #f5f5f5;
+          font-family: monospace;
+          font-size: 9px;
+          font-weight: bold;
+          padding: 2px 6px;
+          border-radius: 4px;
+          white-space: nowrap;
+          max-width: 140px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        ">${nome}</div>
+        <div style="
+          width: 28px; height: 28px;
+          background: #f5f5f5;
+          border: 2px solid white;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 0 8px rgba(245,245,245,0.6);
+        ">${svg}</div>
+      </div>
+    `,
+    iconSize: [28, 46],
+    iconAnchor: [14, 28]
+  })
+}
+
+function criarIconeEvento(titulo: string) {
+  const svg = svgComoTexto(Calendar, '#0a0a0a')
+
+  return L.divIcon({
+    className: 'evento-pin',
+    html: `
+      <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+        <div class="nome-label" style="
+          background: rgba(10,10,10,0.85);
+          color: #9cff00;
+          font-family: monospace;
+          font-size: 9px;
+          font-weight: bold;
+          padding: 2px 6px;
+          border-radius: 4px;
+          white-space: nowrap;
+          max-width: 140px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        ">${titulo}</div>
+        <div style="
+          width: 28px; height: 28px;
+          background: linear-gradient(135deg, #ff14e1, #9cff00);
+          border: 2px solid white;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 0 10px rgba(255,20,225,0.6);
+        ">${svg}</div>
+      </div>
+    `,
+    iconSize: [28, 46],
+    iconAnchor: [14, 28]
+  })
+}
+
+function criarIconeRole(avatarUrl: string | null, apelido: string) {
+  const conteudoAvatar = avatarUrl
+    ? `background-image:url('${avatarUrl}'); background-size:cover; background-position:center;`
+    : `background:#22c55e; display:flex; align-items:center; justify-content:center; color:white; font-family:monospace; font-size:11px; font-weight:bold;`
+
+  const iniciais = apelido ? apelido.charAt(0).toUpperCase() : '?'
+
+  return L.divIcon({
+    className: 'role-pin',
+    html: `
+      <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+        <div style="
+          background: rgba(10,10,10,0.85);
+          color: #22c55e;
+          font-family: monospace;
+          font-size: 9px;
+          font-weight: bold;
+          padding: 1px 5px;
+          border-radius: 4px;
+          white-space: nowrap;
+        ">@${apelido}</div>
+        <div style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.6); ${conteudoAvatar}">
+          ${avatarUrl ? '' : iniciais}
+        </div>
+      </div>
+    `,
+    iconSize: [30, 50],
+    iconAnchor: [15, 30]
+  })
+}
+
+export function Map({
+  dados,
+  eventos,
+  foco,
+  mostrarCalor,
+  pontosExtras
+}: {
+  dados: any[]
+  eventos?: any[]
+  foco?: Foco
+  mostrarCalor?: boolean
+  pontosExtras?: Array<[number, number, number]>
+}) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
-  const markersLayer = useRef<L.LayerGroup | null>(null)
+  const markersLayer = useRef<any>(null)
   const heatLayerRef = useRef<L.Layer | null>(null)
   const meuMarcador = useRef<L.Marker | null>(null)
   const watchId = useRef<number | null>(null)
@@ -64,7 +224,21 @@ export function Map({ dados, foco, mostrarCalor, pontosExtras }: { dados: any[];
         maxZoom: 20
       }).addTo(mapInstance.current)
 
-      markersLayer.current = L.layerGroup().addTo(mapInstance.current)
+      markersLayer.current = (L as any).markerClusterGroup({
+        iconCreateFunction: criarIconeCluster,
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true
+      }).addTo(mapInstance.current)
+
+      const atualizarClasseZoom = () => {
+        if (!mapRef.current || !mapInstance.current) return
+        const zoomAtual = mapInstance.current.getZoom()
+        mapRef.current.classList.toggle('zoom-perto', zoomAtual >= ZOOM_MINIMO_PARA_NOME)
+      }
+      mapInstance.current.on('zoomend', atualizarClasseZoom)
+      atualizarClasseZoom()
     }
 
     if (!navigator.geolocation) {
@@ -81,8 +255,6 @@ export function Map({ dados, foco, mostrarCalor, pontosExtras }: { dados: any[];
       { enableHighAccuracy: true, timeout: 8000 }
     )
 
-    // Terceiro tipo de ponto: posição do usuário em tempo real — acompanha o
-    // GPS continuamente (não é só a posição inicial, atualiza conforme a pessoa se move).
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => atualizarMeuMarcador(pos.coords.latitude, pos.coords.longitude),
       (err) => console.error('Erro ao acompanhar localização:', err),
@@ -110,9 +282,6 @@ export function Map({ dados, foco, mostrarCalor, pontosExtras }: { dados: any[];
     mapInstance.current.flyTo([foco.lat, foco.lng], 17)
   }, [foco?.ts])
 
-  // Mapa de calor: densidade de atividades recentes (só rolês, não pontos fixos —
-  // isso é sobre "onde tá rolando agora", os fixos já têm pin próprio permanente).
-  // Post mais recente pesa mais que um perto do fim da janela de 24h.
   useEffect(() => {
     if (!mapInstance.current) return
 
@@ -133,8 +302,6 @@ export function Map({ dados, foco, mostrarCalor, pontosExtras }: { dados: any[];
         return [r.lat, r.lng, peso]
       })
 
-    // Check-ins de lotação também esquentam o mapa — são um sinal ainda mais
-    // forte que um post (é gente confirmando presença de verdade, agora).
     if (pontosExtras) pontos.push(...pontosExtras)
 
     if (heatLayerRef.current) {
@@ -153,44 +320,36 @@ export function Map({ dados, foco, mostrarCalor, pontosExtras }: { dados: any[];
     markersLayer.current.clearLayers()
 
     dados.forEach((relato) => {
-      // Posts sem localização (ex: AGORA com localização desmarcada) não têm pin no mapa
       if (relato.lat === null || relato.lng === null) return
 
       const isAgoraComFoto = relato.categoria === 'AGORA' && relato.image_url
-      const cor = relato.is_fixed ? '#f5f5f5' : '#22c55e'
 
-      const pinIcon = isAgoraComFoto
-        ? L.divIcon({
-            className: 'agora-pin',
-            html: `
-              <div style="
-                width: 34px; height: 34px;
-                border-radius: 50%;
-                background-image: url('${relato.image_url}');
-                background-size: cover;
-                background-position: center;
-                border: 2px solid #f97316;
-                box-shadow: 0 0 10px rgba(249,115,22,0.7);
-              "></div>
-            `,
-            iconSize: [34, 34],
-            iconAnchor: [17, 17]
-          })
-        : L.divIcon({
-            className: 'custom-pin',
-            html: `
-              <div style="
-                width: 16px; height: 16px;
-                background: ${cor};
-                border: 2px solid white;
-                border-radius: 50%;
-                box-shadow: 0 0 10px ${cor}CC;
-              "></div>
-            `,
-            iconSize: [16, 16]
-          })
+      let pinIcon: L.DivIcon
 
-      const marker = L.marker([relato.lat, relato.lng], { icon: pinIcon })
+      if (isAgoraComFoto) {
+        pinIcon = L.divIcon({
+          className: 'agora-pin',
+          html: `
+            <div style="
+              width: 34px; height: 34px;
+              border-radius: 50%;
+              background-image: url('${relato.image_url}');
+              background-size: cover;
+              background-position: center;
+              border: 2px solid #f97316;
+              box-shadow: 0 0 10px rgba(249,115,22,0.7);
+            "></div>
+          `,
+          iconSize: [34, 34],
+          iconAnchor: [17, 17]
+        })
+      } else if (relato.is_fixed) {
+        pinIcon = criarIconeLocalFixo(relato.nome_local || 'LOCAL', relato.categoria)
+      } else {
+        pinIcon = criarIconeRole(relato.autor?.avatar_url || null, relato.apelido || 'anonimo')
+      }
+
+      L.marker([relato.lat, relato.lng], { icon: pinIcon })
         .addTo(markersLayer.current!)
         .bindPopup(`
           <div class="font-mono text-[10px] text-black">
@@ -200,7 +359,28 @@ export function Map({ dados, foco, mostrarCalor, pontosExtras }: { dados: any[];
           </div>
         `)
     })
-  }, [dados])
 
-  return <div ref={mapRef} className="w-full h-full bg-[#050505]" />
+    ;(eventos || []).forEach((evento) => {
+      if (evento.lat === null || evento.lng === null) return
+
+      L.marker([evento.lat, evento.lng], { icon: criarIconeEvento(evento.titulo) })
+        .addTo(markersLayer.current!)
+        .bindPopup(`
+          <div class="font-mono text-[10px] text-black">
+            <strong class="block mb-1">${evento.titulo}</strong>
+            <p>${new Date(evento.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
+        `)
+    })
+  }, [dados, eventos])
+
+  return (
+    <>
+      <style>{`
+        .nome-label { display: none; }
+        .zoom-perto .nome-label { display: block; }
+      `}</style>
+      <div ref={mapRef} className="w-full h-full bg-[#050505]" />
+    </>
+  )
 }

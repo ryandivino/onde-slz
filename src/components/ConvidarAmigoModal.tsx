@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useAmizades } from '../hooks/useAmizades'
-import { X, Send, UserPlus } from 'lucide-react'
+import { X, Send } from 'lucide-react'
 
 type PulsoParaConvite = {
   id: number
@@ -42,7 +42,7 @@ export function ConvidarAmigoModal({ pulso, onClose }: { pulso: PulsoParaConvite
       <div className="w-full max-w-sm bg-surface border border-borderRaw rounded-2xl p-6 space-y-3 shadow-2xl max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b border-borderRaw/40 pb-2">
           <span className="text-[10px] font-mono tracking-widest text-accent flex items-center gap-2">
-            <UserPlus size={14} /> CONVIDAR PRA ESSE ROLÊ
+            <Send size={14} /> CONVIDAR PRA ESSE ROLÊ
           </span>
           <button onClick={onClose} className="text-accent/40 hover:text-accent"><X size={16} /></button>
         </div>

@@ -28,6 +28,7 @@ import { CadastroLocalModerador } from './components/CadastroLocalModerador'
 import { EventoModal } from './components/EventoModal'
 import { useEventosGerais } from './hooks/useEventosGerais'
 import { EditarLocalModal } from './components/EditarLocalModal'
+import { ConfirmarLocalizacaoModal } from './components/ConfirmarLocalizacaoModal'
 import { useLotacao } from './hooks/useLotacao'
 import { EventosManager } from './components/EventosManager'
 import { AnunciosManager } from './components/AnunciosManager'
@@ -36,7 +37,7 @@ import { LoadingScreen } from './components/LoadingScreen'
 import { PoliticasModal, politicasJaAceitas } from './components/PoliticasModal'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
-import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, UserPlus, Calendar, Flame, Pencil } from 'lucide-react'
+import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette } from 'lucide-react'
 import logo from './assets/logo.png'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -45,6 +46,14 @@ import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 
 const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
+
+const ICONE_POR_FILTRO: Record<string, React.ComponentType<{ size?: number }>> = {
+  BARES: Beer,
+  RESTAURANTES: UtensilsCrossed,
+  CULTURA: Palette,
+  OUTROS: MapPin,
+  AMIGOS: Users
+}
 
 export default function App() {
   const { usuarioLogado, perfil, session, emRecuperacaoSenha } = useAuth()
@@ -111,6 +120,7 @@ export default function App() {
   const [carregando, setCarregando] = useState(false)
 
   const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number } | null>(null)
+  const [mostrarConfirmacaoPublicacao, setMostrarConfirmacaoPublicacao] = useState(false)
   const [erroGps, setErroGps] = useState<string | null>(null)
 
   // Modo moderador: só existe de fato se perfil.is_admin === true (ver MenuPanel)
@@ -192,7 +202,7 @@ export default function App() {
       const vinteQuatroHorasAtras = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
       const { data, error } = await supabase
         .from('pulsos')
-        .select('*')
+        .select('*, autor:profiles(avatar_url)')
         .or(`is_fixed.eq.true,created_at.gte.${vinteQuatroHorasAtras}`)
         .order('created_at', { ascending: false })
 
@@ -292,13 +302,22 @@ export default function App() {
     setIsAgoraOpen(true)
   }
 
-  const lidarComEnvio = async (e: React.FormEvent) => {
+  const lidarComEnvio = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!texto.trim() || !coordenadas) {
       alert("Aguarde a localização ou verifique o texto.")
       return
     }
+
+    // Antes de publicar de verdade, mostra onde o pino vai cair — a
+    // localização é capturada silenciosamente pelo GPS, então a pessoa
+    // nunca tinha visto isso antes de confirmar.
+    setMostrarConfirmacaoPublicacao(true)
+  }
+
+  const confirmarEPublicar = async () => {
+    if (!texto.trim() || !coordenadas) return
 
     setCarregando(true)
 
@@ -322,6 +341,7 @@ export default function App() {
       console.error("Erro detalhado do Supabase:", error)
       alert("Erro ao enviar: " + (error.message || "Verifique o console."))
     } else {
+      setMostrarConfirmacaoPublicacao(false)
       setIsFormOpen(false)
       setTexto('')
       setApelidoManual('')
@@ -379,13 +399,17 @@ export default function App() {
                 }, 900)
               }}
             >
-              {filters.map((category) => (
-                <SwiperSlide key={category} className="!w-auto flex items-center py-1">
-                  <button onClick={() => lidarComCliqueFiltro(category)} className={`rounded-full text-[10px] font-mono uppercase tracking-widest px-5 py-2.5 border ${filterActive === category ? 'bg-accent text-background' : 'bg-background/90 text-accent/60'}`}>
-                    {category}
-                  </button>
-                </SwiperSlide>
-              ))}
+              {filters.map((category) => {
+                const IconeFiltro = ICONE_POR_FILTRO[category]
+                return (
+                  <SwiperSlide key={category} className="!w-auto flex items-center py-1">
+                    <button onClick={() => lidarComCliqueFiltro(category)} className={`flex items-center gap-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest px-5 py-2.5 border ${filterActive === category ? 'bg-accent text-background' : 'bg-background/90 text-accent/60'}`}>
+                      {IconeFiltro && <IconeFiltro size={11} />}
+                      {category}
+                    </button>
+                  </SwiperSlide>
+                )
+              })}
             </Swiper>
           </div>
 
@@ -423,7 +447,7 @@ export default function App() {
       <AgoraStories posts={agoraPosts} onAbrir={(i) => setAgoraViewerIndice(i)} />
 
       <div className="absolute inset-0 w-full h-full z-0">
-        <Map dados={relatosFiltrados} foco={foco} mostrarCalor={mostrarCalor} pontosExtras={pontosCalorLotacao} />
+        <Map dados={relatosFiltrados} eventos={eventosGerais} foco={foco} mostrarCalor={mostrarCalor} pontosExtras={pontosCalorLotacao} />
       </div>
 
       <button
@@ -648,8 +672,9 @@ export default function App() {
                       <button
                         onClick={() => setPulsoParaConvidar({ id: relato.id, texto: relato.texto, lat: relato.lat, lng: relato.lng })}
                         className="text-accent/50 hover:text-accent"
+                        title="Convidar amigo pra esse rolê"
                       >
-                        <UserPlus size={13} />
+                        <Send size={13} />
                       </button>
                     )}
                   </div>
@@ -737,7 +762,7 @@ export default function App() {
               <input type="text" value={apelidoManual} onChange={(e) => setApelidoManual(e.target.value)} placeholder="Apelido para esse post (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             )}
 
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando bem aqui, agora?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
 
             <select value={categoriaEnvio} onChange={(e) => setCategoriaEnvio(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
               {CATEGORIAS_BASE.map(c => (<option key={c} value={c}>{c}</option>))}
@@ -870,6 +895,18 @@ export default function App() {
           local={localParaEditar}
           onClose={() => setLocalParaEditar(null)}
           onSalvo={() => { setLocalParaEditar(null); buscarRelatos() }}
+        />
+      )}
+
+      {mostrarConfirmacaoPublicacao && coordenadas && (
+        <ConfirmarLocalizacaoModal
+          lat={coordenadas.lat}
+          lng={coordenadas.lng}
+          onChange={(lat, lng) => setCoordenadas({ lat, lng })}
+          textoResumo={texto}
+          onConfirmar={confirmarEPublicar}
+          onVoltar={() => setMostrarConfirmacaoPublicacao(false)}
+          publicando={carregando}
         />
       )}
     </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
 import { CameraCapture } from './CameraCapture'
+import { ConfirmarLocalizacaoModal } from './ConfirmarLocalizacaoModal'
 import { X, MapPin } from 'lucide-react'
 
 export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPublicado: () => void }) {
@@ -15,6 +16,10 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
   const [incluirLocalizacao, setIncluirLocalizacao] = useState(true)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+
+  const [urlFotoEnviada, setUrlFotoEnviada] = useState<string | null>(null)
+  const [coordenadasParaConfirmar, setCoordenadasParaConfirmar] = useState<{ lat: number; lng: number } | null>(null)
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
 
   const lidarComFoto = (blob: Blob) => {
     setFotoBlob(blob)
@@ -35,34 +40,67 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
     })
   }
 
-  const publicar = async () => {
+  const publicarNoBanco = async (coordenadas: { lat: number; lng: number } | null, imageUrl: string) => {
+    const { error: erroInsert } = await supabase.from('pulsos').insert([{
+      texto: texto.trim(),
+      apelido: postarAnonimo ? (apelidoManual.trim() || 'ANÔNIMO') : perfil?.apelido,
+      user_id: session!.user.id,
+      lat: coordenadas?.lat ?? null,
+      lng: coordenadas?.lng ?? null,
+      categoria: 'AGORA',
+      is_fixed: false,
+      image_url: imageUrl,
+      anonimo: postarAnonimo
+    }])
+    if (erroInsert) throw erroInsert
+  }
+
+  // Faz o upload da foto e obtém a localização (se marcada). Se tiver
+  // localização, para aqui e mostra a confirmação visual antes de publicar
+  // de verdade — a pessoa nunca tinha visto onde o pino ia cair antes disso.
+  const iniciarPublicacao = async () => {
     if (!fotoBlob || !session?.user) return
     setEnviando(true)
     setErro(null)
 
     try {
-      const caminho = `${session.user.id}/${Date.now()}.jpg`
-      const { error: erroUpload } = await supabase.storage.from('fotos-agora').upload(caminho, fotoBlob, {
-        contentType: 'image/jpeg'
-      })
-      if (erroUpload) throw erroUpload
+      let imageUrl = urlFotoEnviada
 
-      const { data: urlData } = supabase.storage.from('fotos-agora').getPublicUrl(caminho)
+      if (!imageUrl) {
+        const caminho = `${session.user.id}/${Date.now()}.jpg`
+        const { error: erroUpload } = await supabase.storage.from('fotos-agora').upload(caminho, fotoBlob, {
+          contentType: 'image/jpeg'
+        })
+        if (erroUpload) throw erroUpload
+        const { data: urlData } = supabase.storage.from('fotos-agora').getPublicUrl(caminho)
+        imageUrl = urlData.publicUrl
+        setUrlFotoEnviada(imageUrl)
+      }
+
       const coordenadas = await obterLocalizacao()
 
-      const { error: erroInsert } = await supabase.from('pulsos').insert([{
-        texto: texto.trim(),
-        apelido: postarAnonimo ? (apelidoManual.trim() || 'ANÔNIMO') : perfil?.apelido,
-        user_id: session.user.id,
-        lat: coordenadas?.lat ?? null,
-        lng: coordenadas?.lng ?? null,
-        categoria: 'AGORA',
-        is_fixed: false,
-        image_url: urlData.publicUrl,
-        anonimo: postarAnonimo
-      }])
-      if (erroInsert) throw erroInsert
+      if (coordenadas) {
+        setCoordenadasParaConfirmar(coordenadas)
+        setMostrarConfirmacao(true)
+      } else {
+        await publicarNoBanco(null, imageUrl)
+        onPublicado()
+      }
+    } catch (err: any) {
+      setErro(err.message || 'Erro ao publicar. Tente de novo.')
+    } finally {
+      setEnviando(false)
+    }
+  }
 
+  const confirmarEPublicar = async () => {
+    if (!urlFotoEnviada || !coordenadasParaConfirmar) return
+    setEnviando(true)
+    setErro(null)
+
+    try {
+      await publicarNoBanco(coordenadasParaConfirmar, urlFotoEnviada)
+      setMostrarConfirmacao(false)
       onPublicado()
     } catch (err: any) {
       setErro(err.message || 'Erro ao publicar. Tente de novo.')
@@ -118,13 +156,25 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
         </label>
 
         <button
-          onClick={publicar}
+          onClick={iniciarPublicacao}
           disabled={enviando}
           className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs"
         >
-          {enviando ? 'PUBLICANDO...' : 'PUBLICAR AGORA'}
+          {enviando ? 'AGUARDE...' : 'PUBLICAR AGORA'}
         </button>
       </div>
+
+      {mostrarConfirmacao && coordenadasParaConfirmar && (
+        <ConfirmarLocalizacaoModal
+          lat={coordenadasParaConfirmar.lat}
+          lng={coordenadasParaConfirmar.lng}
+          onChange={(lat, lng) => setCoordenadasParaConfirmar({ lat, lng })}
+          textoResumo={texto || undefined}
+          onConfirmar={confirmarEPublicar}
+          onVoltar={() => setMostrarConfirmacao(false)}
+          publicando={enviando}
+        />
+      )}
     </div>
   )
 }

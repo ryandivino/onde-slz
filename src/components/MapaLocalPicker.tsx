@@ -114,7 +114,7 @@ export function MapaLocalPicker({
           </span>
         )}
       </div>
-      <p className="text-[9px] text-accent/40">Arraste o pino ou toque no mapa pra posicionar exatamente no seu estabelecimento.</p>
+      <p className="text-[9px] text-accent/40">Arraste o pino ou toque no mapa pra posicionar exatamente no local desejado.</p>
     </div>
   )
 }

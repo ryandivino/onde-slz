@@ -197,7 +197,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
               Seu estabelecimento já está no mapa?
             </span>
             <p className="text-[10px] text-accent/50">
-              Um moderador pode já ter fixado seu local no ONDE. Busca pelo nome antes de cadastrar do zero.
+              Seu local pode já estar fixado no ONDE. Busque pelo nome antes de cadastrar do zero.
             </p>
 
             <div className="flex gap-2">
@@ -241,7 +241,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
           <div className="space-y-3">
             <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Etapa 1 — Dados do estabelecimento</span>
             {pulsoReivindicado && (
-              <p className="text-[9px] text-green-400">📍 Usando o local "{pulsoReivindicado.nome_local}" já fixado no mapa — os dados abaixo vão sobrepor o que o moderador colocou.</p>
+              <p className="text-[9px] text-green-400">📍 Usando o local "{pulsoReivindicado.nome_local}" já fixado no mapa: os dados abaixo vão sobrepor os dados já existentes.</p>
             )}
             <input type="text" value={nomeEstabelecimento} onChange={(e) => setNomeEstabelecimento(e.target.value)} placeholder="Nome do estabelecimento *" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
