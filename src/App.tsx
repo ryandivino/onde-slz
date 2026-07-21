@@ -37,7 +37,7 @@ import { LoadingScreen } from './components/LoadingScreen'
 import { PoliticasModal, politicasJaAceitas } from './components/PoliticasModal'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
-import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette } from 'lucide-react'
+import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2 } from 'lucide-react'
 import logo from './assets/logo.png'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -77,6 +77,7 @@ export default function App() {
   const { eventos: eventosGerais, removerEvento, recarregar: recarregarEventosGerais } = useEventosGerais()
   const [mostrarCalor, setMostrarCalor] = useState(false)
   const [pulsoParaDenunciar, setPulsoParaDenunciar] = useState<number | null>(null)
+  const [eventoParaDenunciar, setEventoParaDenunciar] = useState<number | null>(null)
   const [perfilPublicoAlvo, setPerfilPublicoAlvo] = useState<string | null>(null)
 
   // Fluxo de abertura do app: loading -> políticas (se ainda não aceitas) -> anúncio (no máx. 1x por dia)
@@ -447,7 +448,17 @@ export default function App() {
       <AgoraStories posts={agoraPosts} onAbrir={(i) => setAgoraViewerIndice(i)} />
 
       <div className="absolute inset-0 w-full h-full z-0">
-        <Map dados={relatosFiltrados} eventos={eventosGerais} foco={foco} mostrarCalor={mostrarCalor} pontosExtras={pontosCalorLotacao} />
+        <Map
+          dados={relatosFiltrados}
+          eventos={eventosGerais}
+          foco={foco}
+          mostrarCalor={mostrarCalor}
+          pontosExtras={pontosCalorLotacao}
+          onAbrirRota={(lat, lng) => setRotaAlvo({ lat, lng })}
+          onDenunciarPulso={(id) => setPulsoParaDenunciar(id)}
+          onDenunciarEvento={(id) => setEventoParaDenunciar(id)}
+          onConvidar={(pulso) => setPulsoParaConvidar(pulso)}
+        />
       </div>
 
       <button
@@ -715,11 +726,19 @@ export default function App() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        <button onClick={() => setEventoParaDenunciar(evento.id)} className="text-accent/40 hover:text-red-400">
+                          <Flag size={13} />
+                        </button>
                         <button onClick={() => irParaNoMapa(evento.lat, evento.lng)} className="text-accent/50 hover:text-accent">
                           <MapPin size={14} />
                         </button>
+                        <button onClick={() => setRotaAlvo({ lat: evento.lat, lng: evento.lng })} className="text-accent/50 hover:text-accent">
+                          <Navigation size={13} />
+                        </button>
                         {(isAdmin || perfil?.id === evento.user_id) && (
-                          <button onClick={() => removerEvento(evento.id)} className="text-accent/40 hover:text-red-500 text-[9px]">[DEL]</button>
+                          <button onClick={() => removerEvento(evento.id)} className="text-accent/40 hover:text-red-500">
+                            <Trash2 size={13} />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -838,6 +857,10 @@ export default function App() {
 
       {pulsoParaDenunciar !== null && (
         <DenunciaModal pulsoId={pulsoParaDenunciar} onClose={() => setPulsoParaDenunciar(null)} />
+      )}
+
+      {eventoParaDenunciar !== null && (
+        <DenunciaModal eventoId={eventoParaDenunciar} onClose={() => setEventoParaDenunciar(null)} />
       )}
 
       {isDenunciasOpen && (

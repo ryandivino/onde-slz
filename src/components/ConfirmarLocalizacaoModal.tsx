@@ -32,8 +32,8 @@ export function ConfirmarLocalizacaoModal({
           <p className="text-xs text-accent/70 italic border-l-2 border-borderRaw pl-2">"{textoResumo}"</p>
         )}
 
-        <MapaLocalPicker lat={lat} lng={lng} onChange={onChange} />
-        <p className="text-[9px] text-accent/40">Se não for esse o lugar certo, ajuste o pino antes de confirmar.</p>
+        <MapaLocalPicker lat={lat} lng={lng} onChange={onChange} bloqueado />
+        <p className="text-[9px] text-accent/40">Essa é a sua localização atual, capturada automaticamente pelo GPS — não é possível alterar aqui.</p>
 
         <div className="flex gap-2">
           <button

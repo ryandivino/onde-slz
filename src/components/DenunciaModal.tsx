@@ -2,7 +2,15 @@ import React, { useState } from 'react'
 import { X, Flag } from 'lucide-react'
 import { useDenuncias, MOTIVOS_DENUNCIA } from '../hooks/useDenuncias'
 
-export function DenunciaModal({ pulsoId, onClose }: { pulsoId: number; onClose: () => void }) {
+export function DenunciaModal({
+  pulsoId,
+  eventoId,
+  onClose
+}: {
+  pulsoId?: number
+  eventoId?: number
+  onClose: () => void
+}) {
   const { denunciar } = useDenuncias()
   const [motivo, setMotivo] = useState(MOTIVOS_DENUNCIA[0])
   const [erro, setErro] = useState<string | null>(null)
@@ -11,7 +19,7 @@ export function DenunciaModal({ pulsoId, onClose }: { pulsoId: number; onClose: 
 
   const confirmar = async () => {
     setEnviando(true)
-    const { error } = await denunciar(pulsoId, motivo)
+    const { error } = await denunciar({ pulsoId, eventoId }, motivo)
     setEnviando(false)
     if (error) setErro(error.message)
     else setEnviado(true)
@@ -22,7 +30,7 @@ export function DenunciaModal({ pulsoId, onClose }: { pulsoId: number; onClose: 
       <div className="w-full max-w-sm bg-surface border border-borderRaw rounded-2xl p-6 space-y-4 shadow-2xl">
         <div className="flex justify-between items-center border-b border-borderRaw/40 pb-2">
           <span className="text-[10px] font-mono tracking-widest text-red-400 flex items-center gap-2">
-            <Flag size={14} /> DENUNCIAR
+            <Flag size={14} /> {eventoId ? 'DENUNCIAR EVENTO' : 'DENUNCIAR POST'}
           </span>
           <button onClick={onClose} className="text-accent/40 hover:text-accent"><X size={16} /></button>
         </div>

@@ -6,7 +6,7 @@ import 'leaflet.heat'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-import { Beer, UtensilsCrossed, Palette, MapPin, Calendar } from 'lucide-react'
+import { Beer, UtensilsCrossed, Palette, MapPin, Calendar, Navigation, Flag, Send } from 'lucide-react'
 import { formatarTempoRelativo } from '../utils/tempo'
 
 type Foco = { lat: number; lng: number; ts: number } | null
@@ -22,6 +22,27 @@ const ICONE_POR_CATEGORIA: Record<string, React.ComponentType<{ size?: number; c
 
 function svgComoTexto(Icone: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>, cor: string) {
   return renderToStaticMarkup(<Icone size={15} color={cor} strokeWidth={2.4} />)
+}
+
+function svgBotao(Icone: React.ComponentType<{ size?: number; color?: string }>) {
+  return renderToStaticMarkup(<Icone size={13} color="#0a0a0a" />)
+}
+
+// Monta o conteúdo do popup com os botões de ação mais usados — em vez de
+// mandar quem clicou no pin "voltar pro drawer" pra achar o card e agir de
+// lá, as ações ficam disponíveis direto onde a pessoa já está.
+function montarPopupComAcoes(titulo: string, corpo: string, acoes: { classe: string; icone: string }[]) {
+  const botoesHtml = acoes
+    .map((a) => `<button class="${a.classe}" style="background:#f5f5f5; border-radius:6px; padding:4px 7px; margin-right:4px; border:none; cursor:pointer;">${a.icone}</button>`)
+    .join('')
+
+  return `
+    <div class="font-mono text-[10px] text-black" style="min-width:140px;">
+      <strong class="block mb-1">${titulo}</strong>
+      ${corpo}
+      <div style="display:flex; margin-top:6px;">${botoesHtml}</div>
+    </div>
+  `
 }
 
 // Quando vários pins ficam muito próximos (ex: um bar cheio, todo mundo
@@ -42,7 +63,7 @@ function criarIconeCluster(cluster: any) {
         background: linear-gradient(135deg, #ff14e1, #9cff00);
         border: 2px solid white;
         display: flex; align-items: center; justify-content: center;
-        color: #0a0a0a;
+        color: #ffffff;
         font-family: monospace;
         font-weight: bold;
         font-size: ${tamanho >= 40 ? 14 : 12}px;
@@ -192,13 +213,21 @@ export function Map({
   eventos,
   foco,
   mostrarCalor,
-  pontosExtras
+  pontosExtras,
+  onAbrirRota,
+  onDenunciarPulso,
+  onDenunciarEvento,
+  onConvidar
 }: {
   dados: any[]
   eventos?: any[]
   foco?: Foco
   mostrarCalor?: boolean
   pontosExtras?: Array<[number, number, number]>
+  onAbrirRota?: (lat: number, lng: number) => void
+  onDenunciarPulso?: (id: number) => void
+  onDenunciarEvento?: (id: number) => void
+  onConvidar?: (pulso: { id: number; texto: string; lat: number | null; lng: number | null }) => void
 }) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
@@ -351,13 +380,21 @@ export function Map({
 
       L.marker([relato.lat, relato.lng], { icon: pinIcon })
         .addTo(markersLayer.current!)
-        .bindPopup(`
-          <div class="font-mono text-[10px] text-black">
-            <strong class="block mb-1">${relato.nome_local || relato.apelido || 'ANÔNIMO'}</strong>
-            <p>"${relato.texto}"</p>
-            ${relato.is_fixed ? '' : `<span class="italic text-gray-500">${formatarTempoRelativo(relato.created_at)}</span>`}
-          </div>
-        `)
+        .bindPopup(montarPopupComAcoes(
+          relato.nome_local || relato.apelido || 'ANÔNIMO',
+          `<p>"${relato.texto}"</p>${relato.is_fixed ? '' : `<span class="italic text-gray-500">${formatarTempoRelativo(relato.created_at)}</span>`}`,
+          [
+            { classe: 'popup-btn-rota', icone: svgBotao(Navigation) },
+            { classe: 'popup-btn-denunciar', icone: svgBotao(Flag) },
+            ...(!relato.is_fixed ? [{ classe: 'popup-btn-convidar', icone: svgBotao(Send) }] : [])
+          ]
+        ))
+        .on('popupopen', (e) => {
+          const el = e.popup.getElement()
+          el?.querySelector('.popup-btn-rota')?.addEventListener('click', () => onAbrirRota?.(relato.lat, relato.lng))
+          el?.querySelector('.popup-btn-denunciar')?.addEventListener('click', () => onDenunciarPulso?.(relato.id))
+          el?.querySelector('.popup-btn-convidar')?.addEventListener('click', () => onConvidar?.({ id: relato.id, texto: relato.texto, lat: relato.lat, lng: relato.lng }))
+        })
     })
 
     ;(eventos || []).forEach((evento) => {
@@ -365,14 +402,21 @@ export function Map({
 
       L.marker([evento.lat, evento.lng], { icon: criarIconeEvento(evento.titulo) })
         .addTo(markersLayer.current!)
-        .bindPopup(`
-          <div class="font-mono text-[10px] text-black">
-            <strong class="block mb-1">${evento.titulo}</strong>
-            <p>${new Date(evento.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
-          </div>
-        `)
+        .bindPopup(montarPopupComAcoes(
+          evento.titulo,
+          `<p>${new Date(evento.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>`,
+          [
+            { classe: 'popup-btn-rota', icone: svgBotao(Navigation) },
+            { classe: 'popup-btn-denunciar', icone: svgBotao(Flag) }
+          ]
+        ))
+        .on('popupopen', (e) => {
+          const el = e.popup.getElement()
+          el?.querySelector('.popup-btn-rota')?.addEventListener('click', () => onAbrirRota?.(evento.lat, evento.lng))
+          el?.querySelector('.popup-btn-denunciar')?.addEventListener('click', () => onDenunciarEvento?.(evento.id))
+        })
     })
-  }, [dados, eventos])
+  }, [dados, eventos, onAbrirRota, onDenunciarPulso, onDenunciarEvento, onConvidar])
 
   return (
     <>

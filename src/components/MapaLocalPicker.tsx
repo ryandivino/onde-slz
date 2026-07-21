@@ -12,12 +12,14 @@ export function MapaLocalPicker({
   lat,
   lng,
   centroSugerido,
-  onChange
+  onChange,
+  bloqueado
 }: {
   lat: number | null
   lng: number | null
   centroSugerido?: { lat: number; lng: number } | null
   onChange: (lat: number, lng: number) => void
+  bloqueado?: boolean
 }) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
@@ -58,7 +60,7 @@ export function MapaLocalPicker({
       iconAnchor: [12, 12]
     })
 
-    marcador.current = L.marker(centroInicial, { icon: icone, draggable: true }).addTo(mapInstance.current)
+    marcador.current = L.marker(centroInicial, { icon: icone, draggable: !bloqueado }).addTo(mapInstance.current)
 
     marcador.current.on('dragend', () => {
       ajustadoManualmente.current = true
@@ -66,11 +68,13 @@ export function MapaLocalPicker({
       onChange(pos.lat, pos.lng)
     })
 
-    mapInstance.current.on('click', (e: L.LeafletMouseEvent) => {
-      ajustadoManualmente.current = true
-      marcador.current!.setLatLng(e.latlng)
-      onChange(e.latlng.lat, e.latlng.lng)
-    })
+    if (!bloqueado) {
+      mapInstance.current.on('click', (e: L.LeafletMouseEvent) => {
+        ajustadoManualmente.current = true
+        marcador.current!.setLatLng(e.latlng)
+        onChange(e.latlng.lat, e.latlng.lng)
+      })
+    }
 
     if (lat === null || lng === null) {
       onChange(centroInicial[0], centroInicial[1])
@@ -114,7 +118,9 @@ export function MapaLocalPicker({
           </span>
         )}
       </div>
-      <p className="text-[9px] text-accent/40">Arraste o pino ou toque no mapa pra posicionar exatamente no local desejado.</p>
+      {!bloqueado && (
+        <p className="text-[9px] text-accent/40">Arraste o pino ou toque no mapa pra posicionar exatamente no local desejado.</p>
+      )}
     </div>
   )
 }
