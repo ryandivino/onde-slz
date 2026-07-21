@@ -203,12 +203,31 @@ export default function App() {
       const vinteQuatroHorasAtras = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
       const { data, error } = await supabase
         .from('pulsos')
-        .select('*, autor:profiles(avatar_url)')
+        .select('*')
         .or(`is_fixed.eq.true,created_at.gte.${vinteQuatroHorasAtras}`)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      if (data) setRelatos(data)
+      if (!data) return
+
+      // Busca os avatares separadamente e junta aqui — o join automático
+      // (select autor:profiles(...)) não funcionava porque o user_id do
+      // pulso referencia auth.users, não profiles direto, e o Supabase não
+      // consegue montar esse relacionamento sozinho nesse caso.
+      const idsUnicos = [...new Set(data.map((p) => p.user_id).filter(Boolean))]
+      let mapaAvatares: Record<string, string | null> = {}
+
+      if (idsUnicos.length > 0) {
+        const { data: perfis } = await supabase.from('profiles').select('id, avatar_url').in('id', idsUnicos)
+        mapaAvatares = Object.fromEntries((perfis || []).map((p) => [p.id, p.avatar_url]))
+      }
+
+      const relatosComAvatar = data.map((p) => ({
+        ...p,
+        autor: { avatar_url: p.user_id ? mapaAvatares[p.user_id] ?? null : null }
+      }))
+
+      setRelatos(relatosComAvatar)
     } catch (err) {
       console.error('Erro ao buscar relatos:', err)
     }
