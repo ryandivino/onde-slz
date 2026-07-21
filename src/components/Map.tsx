@@ -404,7 +404,7 @@ export function Map({
         .addTo(markersLayer.current!)
         .bindPopup(montarPopupComAcoes(
           evento.titulo,
-          `<p>${new Date(evento.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>`,
+          `<p>${new Date(evento.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>${evento.descricao ? `<p class="text-gray-600 mt-1">"${evento.descricao}"</p>` : ''}`,
           [
             { classe: 'popup-btn-rota', icone: svgBotao(Navigation) },
             { classe: 'popup-btn-denunciar', icone: svgBotao(Flag) }
