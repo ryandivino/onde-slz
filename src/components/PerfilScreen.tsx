@@ -3,6 +3,8 @@ import { useAuth } from '../hooks/useAuth'
 import { useEmpresa } from '../hooks/useEmpresa'
 import { useAmizades } from '../hooks/useAmizades'
 import { X, Camera, Pencil, Check, Users } from 'lucide-react'
+import { AtributosEstabelecimento } from './AtributosEstabelecimento'
+import type { Atributos } from './AtributosEstabelecimento'
 
 export function PerfilScreen({ onClose }: { onClose: () => void }) {
   const { perfil, enviarAvatar, atualizarBio, atualizarApelido } = useAuth()
@@ -25,6 +27,8 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
   const [instagram, setInstagram] = useState('')
   const [site, setSite] = useState('')
   const [horario, setHorario] = useState('')
+  const [endereco, setEndereco] = useState('')
+  const [atributos, setAtributos] = useState<Atributos>({})
   const [salvandoEmpresa, setSalvandoEmpresa] = useState(false)
 
   useEffect(() => { setBio(perfil?.bio || '') }, [perfil?.bio])
@@ -35,6 +39,8 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
       setInstagram(empresa.instagram || '')
       setSite(empresa.site || '')
       setHorario(empresa.horario_funcionamento || '')
+      setEndereco(empresa.endereco || '')
+      setAtributos(empresa.atributos || {})
     }
   }, [empresa])
 
@@ -82,7 +88,9 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
       telefone: telefone.trim() || null,
       instagram: instagram.trim() || null,
       site: site.trim() || null,
-      horario_funcionamento: horario.trim() || null
+      horario_funcionamento: horario.trim() || null,
+      endereco: endereco.trim() || null,
+      atributos
     })
     setSalvandoEmpresa(false)
     if (error) avisar(error.message, true)
@@ -174,6 +182,10 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
             <input type="text" value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="@ do Instagram" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <input type="text" value={site} onChange={(e) => setSite(e.target.value)} placeholder="Site (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <input type="text" value={horario} onChange={(e) => setHorario(e.target.value)} placeholder="Horário de funcionamento" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+            <input type="text" value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Endereço" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+
+            <AtributosEstabelecimento atributos={atributos} onChange={setAtributos} />
+
             <button onClick={salvarEmpresa} disabled={salvandoEmpresa} className="w-full bg-amber-500 text-background font-bold py-2 uppercase rounded-lg text-[10px]">
               {salvandoEmpresa ? 'SALVANDO...' : 'SALVAR DADOS DO ESTABELECIMENTO'}
             </button>

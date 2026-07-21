@@ -25,6 +25,7 @@ import { EstatisticasPanel } from './components/EstatisticasPanel'
 import { InstallPrompt } from './components/InstallPrompt'
 import { PerfilPublicoModal } from './components/PerfilPublicoModal'
 import { CadastroLocalModerador } from './components/CadastroLocalModerador'
+import { EditarLocalModal } from './components/EditarLocalModal'
 import { useLotacao } from './hooks/useLotacao'
 import { EventosManager } from './components/EventosManager'
 import { AnunciosManager } from './components/AnunciosManager'
@@ -33,7 +34,7 @@ import { LoadingScreen } from './components/LoadingScreen'
 import { PoliticasModal, politicasJaAceitas } from './components/PoliticasModal'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
-import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, UserPlus, Calendar, Flame } from 'lucide-react'
+import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, UserPlus, Calendar, Flame, Pencil } from 'lucide-react'
 import logo from './assets/logo.png'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -60,6 +61,7 @@ export default function App() {
   const { checkins, resumoPorLocal, meuVotoPorLocal, votar } = useLotacao()
   const [pulsoParaConvidar, setPulsoParaConvidar] = useState<{ id: number; texto: string; lat: number | null; lng: number | null } | null>(null)
   const [localParaEventos, setLocalParaEventos] = useState<{ id: number; nome: string } | null>(null)
+  const [localParaEditar, setLocalParaEditar] = useState<{ id: number; nome_local: string; texto: string; lat: number; lng: number; endereco: string | null } | null>(null)
   const [mostrarCalor, setMostrarCalor] = useState(false)
   const [pulsoParaDenunciar, setPulsoParaDenunciar] = useState<number | null>(null)
   const [perfilPublicoAlvo, setPerfilPublicoAlvo] = useState<string | null>(null)
@@ -94,7 +96,7 @@ export default function App() {
   const [isAmigosOpen, setIsAmigosOpen] = useState(false)
 
   const [filterActive, setFilterActive] = useState('TODOS')
-  const [abaDrawer, setAbaDrawer] = useState<'atividades' | 'onde_ir'>('atividades')
+  const [abaDrawer, setAbaDrawer] = useState<'atividades' | 'onde_ir' | 'eventos'>('atividades')
   const [termoBusca, setTermoBusca] = useState('')
 
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -487,21 +489,29 @@ export default function App() {
             >
               Onde Ir
             </button>
+            <button
+              onClick={() => setAbaDrawer('eventos')}
+              className={`flex-1 text-[10px] font-mono uppercase tracking-widest py-2.5 ${abaDrawer === 'eventos' ? 'bg-accent text-background' : 'text-accent/50'}`}
+            >
+              Eventos
+            </button>
           </div>
 
-          <div className="px-4 py-2 border-b border-borderRaw/10 flex-shrink-0 relative">
-            <Search size={13} className="absolute left-7 top-1/2 -translate-y-1/2 text-accent/30" />
-            <input
-              type="text"
-              value={termoBusca}
-              onChange={(e) => setTermoBusca(e.target.value)}
-              placeholder={abaDrawer === 'onde_ir' ? 'Buscar local...' : 'Buscar atividade...'}
-              className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-7 pr-2 text-[10px] font-mono"
-            />
-          </div>
+          {abaDrawer !== 'eventos' && (
+            <div className="px-4 py-2 border-b border-borderRaw/10 flex-shrink-0 relative">
+              <Search size={13} className="absolute left-7 top-1/2 -translate-y-1/2 text-accent/30" />
+              <input
+                type="text"
+                value={termoBusca}
+                onChange={(e) => setTermoBusca(e.target.value)}
+                placeholder={abaDrawer === 'onde_ir' ? 'Buscar local...' : 'Buscar atividade...'}
+                className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-7 pr-2 text-[10px] font-mono"
+              />
+            </div>
+          )}
 
           <div className="p-4 space-y-5 flex-1 overflow-y-auto">
-            {listaAtual.length === 0 && (
+            {abaDrawer !== 'eventos' && listaAtual.length === 0 && (
               <p className="text-[10px] text-accent/30 text-center pt-4">
                 {termoBusca.trim()
                   ? 'Nenhum resultado encontrado.'
@@ -590,6 +600,15 @@ export default function App() {
                   </button>
                 )}
 
+                {isAdmin && (
+                  <button
+                    onClick={() => setLocalParaEditar({ id: relato.id, nome_local: relato.nome_local, texto: relato.texto, lat: relato.lat, lng: relato.lng, endereco: relato.endereco })}
+                    className="text-[9px] font-mono text-accent/40 hover:text-accent flex items-center gap-1 mt-1"
+                  >
+                    <Pencil size={11} /> Editar local
+                  </button>
+                )}
+
                 {isAdmin && <button onClick={() => deletarRelato(relato.id)} className="text-[9px] text-red-500">[DELETAR]</button>}
               </div>
             ))}
@@ -639,9 +658,62 @@ export default function App() {
                 {isAdmin && <button onClick={() => deletarRelato(relato.id)} className="text-[9px] text-red-500 ml-2">[DELETAR]</button>}
               </div>
             ))}
+
+            {abaDrawer === 'eventos' && (
+              <>
+                <button
+                  onClick={() => (usuarioLogado ? setIsEventoModalOpen(true) : setIsLoginOpen(true))}
+                  className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold"
+                >
+                  <Plus size={14} /> Criar evento
+                </button>
+
+                {eventosGerais.length === 0 && (
+                  <p className="text-[10px] text-accent/30 text-center pt-4">Nenhum evento marcado ainda. Seja o primeiro a divulgar um!</p>
+                )}
+
+                {eventosGerais.map((evento) => (
+                  <div key={evento.id} className="rounded-xl border border-borderRaw/20 bg-background/40 p-3 space-y-1.5">
+                    {evento.image_url && (
+                      <img src={evento.image_url} alt="" className="w-full max-h-40 object-cover rounded-lg" />
+                    )}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[8px] font-mono text-accent/40 uppercase tracking-widest">{evento.categoria}</span>
+                        <h2 className="text-xs font-mono font-bold">{evento.titulo}</h2>
+                        <span className="text-[10px] text-accent/60">
+                          {new Date(evento.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button onClick={() => irParaNoMapa(evento.lat, evento.lng)} className="text-accent/50 hover:text-accent">
+                          <MapPin size={14} />
+                        </button>
+                        {(isAdmin || perfil?.id === evento.user_id) && (
+                          <button onClick={() => removerEvento(evento.id)} className="text-accent/40 hover:text-red-500 text-[9px]">[DEL]</button>
+                        )}
+                      </div>
+                    </div>
+                    {evento.descricao && <p className="text-xs text-accent/70">{evento.descricao}</p>}
+                    {evento.link_ingresso && (
+                      <a href={evento.link_ingresso} target="_blank" rel="noopener noreferrer" className="inline-block text-[10px] font-mono uppercase text-background bg-accent rounded-lg px-3 py-1.5 mt-1">
+                        Comprar ingresso
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {isEventoModalOpen && (
+        <EventoModal
+          onClose={() => setIsEventoModalOpen(false)}
+          onPublicado={() => { setIsEventoModalOpen(false); recarregarEventosGerais() }}
+        />
+      )}
 
       {isFormOpen && (
         <div className="fixed inset-0 bg-background/85 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
@@ -787,6 +859,14 @@ export default function App() {
 
       {perfilPublicoAlvo && (
         <PerfilPublicoModal userId={perfilPublicoAlvo} onClose={() => setPerfilPublicoAlvo(null)} />
+      )}
+
+      {localParaEditar && (
+        <EditarLocalModal
+          local={localParaEditar}
+          onClose={() => setLocalParaEditar(null)}
+          onSalvo={() => { setLocalParaEditar(null); buscarRelatos() }}
+        />
       )}
     </div>
   )
