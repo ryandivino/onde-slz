@@ -25,6 +25,8 @@ import { EstatisticasPanel } from './components/EstatisticasPanel'
 import { InstallPrompt } from './components/InstallPrompt'
 import { PerfilPublicoModal } from './components/PerfilPublicoModal'
 import { CadastroLocalModerador } from './components/CadastroLocalModerador'
+import { EventoModal } from './components/EventoModal'
+import { useEventosGerais } from './hooks/useEventosGerais'
 import { EditarLocalModal } from './components/EditarLocalModal'
 import { useLotacao } from './hooks/useLotacao'
 import { EventosManager } from './components/EventosManager'
@@ -62,6 +64,8 @@ export default function App() {
   const [pulsoParaConvidar, setPulsoParaConvidar] = useState<{ id: number; texto: string; lat: number | null; lng: number | null } | null>(null)
   const [localParaEventos, setLocalParaEventos] = useState<{ id: number; nome: string } | null>(null)
   const [localParaEditar, setLocalParaEditar] = useState<{ id: number; nome_local: string; texto: string; lat: number; lng: number; endereco: string | null } | null>(null)
+  const [isEventoModalOpen, setIsEventoModalOpen] = useState(false)
+  const { eventos: eventosGerais, removerEvento, recarregar: recarregarEventosGerais } = useEventosGerais()
   const [mostrarCalor, setMostrarCalor] = useState(false)
   const [pulsoParaDenunciar, setPulsoParaDenunciar] = useState<number | null>(null)
   const [perfilPublicoAlvo, setPerfilPublicoAlvo] = useState<string | null>(null)

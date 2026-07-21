@@ -1,0 +1,122 @@
+import React, { useState, useEffect } from 'react'
+import { supabase } from '../supabase'
+import { useAuth } from '../hooks/useAuth'
+import { X, Calendar, Camera } from 'lucide-react'
+import { MapaLocalPicker } from './MapaLocalPicker'
+
+const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
+
+export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onPublicado: () => void }) {
+  const { session } = useAuth()
+
+  const [titulo, setTitulo] = useState('')
+  const [categoria, setCategoria] = useState(CATEGORIAS_BASE[0])
+  const [dataHora, setDataHora] = useState('')
+  const [descricao, setDescricao] = useState('')
+  const [linkIngresso, setLinkIngresso] = useState('')
+  const [foto, setFoto] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+
+  const [lat, setLat] = useState<number | null>(null)
+  const [lng, setLng] = useState<number | null>(null)
+
+  const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    navigator.geolocation?.getCurrentPosition(
+      (pos) => { setLat(pos.coords.latitude); setLng(pos.coords.longitude) },
+      () => {},
+      { enableHighAccuracy: true }
+    )
+  }, [])
+
+  const lidarComFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0]
+    if (!arquivo) return
+    setFoto(arquivo)
+    setFotoPreview(URL.createObjectURL(arquivo))
+  }
+
+  const publicar = async () => {
+    if (!titulo.trim()) { setErro('Preencha o título do evento.'); return }
+    if (!dataHora) { setErro('Escolha a data e hora do evento.'); return }
+    if (lat === null || lng === null) { setErro('Posicione o local do evento no mapa.'); return }
+    if (!session?.user) return
+
+    setErro(null)
+    setEnviando(true)
+
+    try {
+      let imageUrl: string | null = null
+
+      if (foto) {
+        const caminho = `${session.user.id}/${Date.now()}.jpg`
+        const { error: erroUpload } = await supabase.storage.from('fotos-eventos').upload(caminho, foto)
+        if (erroUpload) throw erroUpload
+        const { data: urlData } = supabase.storage.from('fotos-eventos').getPublicUrl(caminho)
+        imageUrl = urlData.publicUrl
+      }
+
+      const { error: erroInsert } = await supabase.from('eventos').insert([{
+        titulo: titulo.trim(),
+        descricao: descricao.trim() || null,
+        categoria,
+        data_hora: new Date(dataHora).toISOString(),
+        lat,
+        lng,
+        link_ingresso: linkIngresso.trim() || null,
+        image_url: imageUrl,
+        user_id: session.user.id
+      }])
+
+      if (erroInsert) throw erroInsert
+      onPublicado()
+    } catch (err: any) {
+      setErro(err.message || 'Erro ao publicar o evento. Tente de novo.')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-background/95 z-[9999] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-surface border border-borderRaw rounded-2xl p-6 space-y-3 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center border-b border-borderRaw/40 pb-2">
+          <span className="text-[10px] font-mono tracking-widest text-accent flex items-center gap-2">
+            <Calendar size={14} /> CRIAR EVENTO
+          </span>
+          <button type="button" onClick={onClose} className="text-accent/40 hover:text-accent"><X size={16} /></button>
+        </div>
+
+        {erro && <div className="text-[10px] text-red-400">{erro}</div>}
+
+        <input type="text" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título do evento *" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+
+        <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
+          {CATEGORIAS_BASE.map((c) => (<option key={c} value={c}>{c}</option>))}
+        </select>
+
+        <input type="datetime-local" value={dataHora} onChange={(e) => setDataHora(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+
+        <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição (opcional)" className="w-full h-16 bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+
+        <input type="text" value={linkIngresso} onChange={(e) => setLinkIngresso(e.target.value)} placeholder="Link de ingressos (opcional — Sympla, Eventbrite, etc.)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+
+        <label className="flex items-center gap-2 text-[10px] font-mono text-accent/60 cursor-pointer">
+          <Camera size={14} />
+          {foto ? 'Foto selecionada — trocar' : 'Adicionar foto (opcional)'}
+          <input type="file" accept="image/*" onChange={lidarComFoto} className="hidden" />
+        </label>
+        {fotoPreview && <img src={fotoPreview} alt="Prévia" className="w-full rounded-lg border border-borderRaw max-h-32 object-cover" />}
+
+        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Local do evento</span>
+        <MapaLocalPicker lat={lat} lng={lng} onChange={(novoLat, novoLng) => { setLat(novoLat); setLng(novoLng) }} />
+
+        <button type="button" onClick={publicar} disabled={enviando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs">
+          {enviando ? 'PUBLICANDO...' : 'PUBLICAR EVENTO'}
+        </button>
+      </div>
+    </div>
+  )
+}
