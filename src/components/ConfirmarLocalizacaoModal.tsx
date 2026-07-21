@@ -33,7 +33,7 @@ export function ConfirmarLocalizacaoModal({
         )}
 
         <MapaLocalPicker lat={lat} lng={lng} onChange={onChange} bloqueado />
-        <p className="text-[9px] text-accent/40">Essa é o local que você se encontra, capturado automaticamente pelo GPS.</p>
+        <p className="text-[9px] text-accent/40">Esse é o local que você se encontra, capturado automaticamente pelo GPS.</p>
 
         <div className="flex gap-2">
           <button
