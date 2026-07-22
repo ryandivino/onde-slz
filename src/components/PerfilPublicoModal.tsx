@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
-import { X, Store, Phone, AtSign, Globe, Clock, MapPin } from 'lucide-react'
+import { X, Store, Phone, AtSign, Globe, Clock, MapPin, UserPlus, UserCheck } from 'lucide-react'
 import { ATRIBUTOS_DISPONIVEIS } from './AtributosEstabelecimento'
+import { useSeguidores } from '../hooks/useSeguidores'
 
 type PerfilPublico = {
   apelido: string
@@ -25,6 +26,7 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
   const [perfil, setPerfil] = useState<PerfilPublico | null>(null)
   const [empresa, setEmpresa] = useState<EmpresaPublica | null>(null)
   const [carregando, setCarregando] = useState(true)
+  const { totalSeguidores, euSigo, alternarSeguir } = useSeguidores(userId)
 
   useEffect(() => {
     let cancelado = false
@@ -87,6 +89,15 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
                 )}
               </div>
               {perfil.bio && <p className="text-xs text-accent/60 text-center">{perfil.bio}</p>}
+
+              <span className="text-[10px] text-accent/50 font-mono">{totalSeguidores} seguidor{totalSeguidores !== 1 ? 'es' : ''}</span>
+
+              <button
+                onClick={alternarSeguir}
+                className={`flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest px-4 py-2 rounded-lg ${euSigo ? 'border border-borderRaw text-accent/60' : 'bg-accent text-background font-bold'}`}
+              >
+                {euSigo ? <><UserCheck size={13} /> Seguindo</> : <><UserPlus size={13} /> Seguir</>}
+              </button>
             </div>
 
             {perfil.is_empresa && empresa && (

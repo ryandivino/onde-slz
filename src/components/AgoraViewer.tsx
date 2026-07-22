@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { X, MapPin } from 'lucide-react'
+import { X, MapPin, Heart } from 'lucide-react'
 import { formatarTempoRelativo } from '../utils/tempo'
 import { useAgoraVistos } from '../hooks/useAgoraVistos'
+import { useCurtidas } from '../hooks/useCurtidas'
 import type { PostAgora } from './AgoraStories'
 
 const DURACAO_MS = 5000
@@ -51,6 +52,7 @@ export function AgoraViewer({
   }
 
   const post = posts[indice]
+  const { total: totalCurtidas, euCurti, alternarCurtida } = useCurtidas(post?.id ?? null)
   if (!post) return null
 
   return (
@@ -80,19 +82,26 @@ export function AgoraViewer({
         <button onClick={voltar} className="absolute left-0 top-0 w-1/2 h-full" />
         <button onClick={avancar} className="absolute right-0 top-0 w-1/2 h-full" />
 
-        {(post.texto || (post.lat !== null && post.lng !== null)) && (
-          <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-between gap-2">
-            {post.texto && <p className="text-white text-sm flex-1">{post.texto}</p>}
+        <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-between gap-2">
+          {post.texto && <p className="text-white text-sm flex-1">{post.texto}</p>}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); alternarCurtida() }}
+              className={`flex items-center gap-1 rounded-full p-2 bg-white/10 ${euCurti ? 'text-red-500' : 'text-white/80 hover:text-white'}`}
+            >
+              <Heart size={16} fill={euCurti ? 'currentColor' : 'none'} />
+              {totalCurtidas > 0 && <span className="text-[10px] font-mono">{totalCurtidas}</span>}
+            </button>
             {post.lat !== null && post.lng !== null && (
               <button
                 onClick={() => { onIrParaNoMapa(post.lat!, post.lng!); onClose() }}
-                className="text-white/80 hover:text-white flex-shrink-0 bg-white/10 rounded-full p-2"
+                className="text-white/80 hover:text-white bg-white/10 rounded-full p-2"
               >
                 <MapPin size={16} />
               </button>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

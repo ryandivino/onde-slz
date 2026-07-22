@@ -3,7 +3,7 @@ import { supabase } from '../supabase'
 import { useNotificacoes } from '../hooks/useNotificacoes'
 import { useAmizades } from '../hooks/useAmizades'
 import { formatarTempoRelativo } from '../utils/tempo'
-import { Check, X, Bell, MapPin, Megaphone, Calendar, UserPlus, Sparkles } from 'lucide-react'
+import { Check, X, Bell, MapPin, Megaphone, Calendar, UserPlus, Sparkles, UserCheck } from 'lucide-react'
 import type { Notificacao } from '../hooks/useNotificacoes'
 
 function IconePorTipo({ tipo }: { tipo: Notificacao['tipo'] }) {
@@ -11,6 +11,7 @@ function IconePorTipo({ tipo }: { tipo: Notificacao['tipo'] }) {
   if (tipo === 'atualizacao' || tipo === 'admin') return <Megaphone size={14} className="text-accent/60" />
   if (tipo === 'convite_role') return <UserPlus size={14} className="text-accent/60" />
   if (tipo === 'resumo_semanal') return <Sparkles size={14} className="text-accent/60" />
+  if (tipo === 'seguidor') return <UserCheck size={14} className="text-accent/60" />
   return null
 }
 

@@ -5,7 +5,7 @@ import { useAuth } from './useAuth'
 export type Notificacao = {
   id: number
   destinatario_id: string | null
-  tipo: 'pedido_amizade' | 'post_amigo' | 'convite_role' | 'resumo_semanal' | 'evento' | 'atualizacao' | 'admin'
+  tipo: 'pedido_amizade' | 'post_amigo' | 'convite_role' | 'resumo_semanal' | 'evento' | 'atualizacao' | 'admin' | 'seguidor'
   titulo: string
   mensagem: string | null
   lat: number | null

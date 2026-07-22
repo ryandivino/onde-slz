@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useEmpresa } from '../hooks/useEmpresa'
 import { useAmizades } from '../hooks/useAmizades'
+import { useSeguidores } from '../hooks/useSeguidores'
 import { X, Camera, Pencil, Check, Users } from 'lucide-react'
 import { AtributosEstabelecimento } from './AtributosEstabelecimento'
 import type { Atributos } from './AtributosEstabelecimento'
@@ -10,6 +11,7 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
   const { perfil, enviarAvatar, atualizarBio, atualizarApelido } = useAuth()
   const { empresa, atualizarEmpresa } = useEmpresa()
   const { amigos } = useAmizades()
+  const { totalSeguidores, totalSeguindo } = useSeguidores(perfil?.id ?? null)
   const inputAvatarRef = useRef<HTMLInputElement>(null)
 
   const [enviandoAvatar, setEnviandoAvatar] = useState(false)
@@ -152,10 +154,11 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Amigos — só a contagem, visível só pro próprio dono do perfil (não clicável) */}
-        <div className="flex items-center justify-center gap-2 text-[11px] font-mono text-accent/50 border-y border-borderRaw/20 py-2">
-          <Users size={13} />
-          <span>{amigos.length} amigo{amigos.length !== 1 ? 's' : ''}</span>
+        {/* Amigos + Seguidores/Seguindo — só contagem, visível só pro próprio dono (não clicável) */}
+        <div className="flex items-center justify-center gap-4 text-[11px] font-mono text-accent/50 border-y border-borderRaw/20 py-2">
+          <span className="flex items-center gap-1.5"><Users size={13} /> {amigos.length} amigo{amigos.length !== 1 ? 's' : ''}</span>
+          <span>{totalSeguidores} seguidor{totalSeguidores !== 1 ? 'es' : ''}</span>
+          <span>{totalSeguindo} seguindo</span>
         </div>
 
         {/* Bio */}
