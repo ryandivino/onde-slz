@@ -63,6 +63,7 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
 
   const publicar = async () => {
     if (!titulo.trim()) { setErro('Preencha o título do evento.'); return }
+    if (!rua.trim() || !bairro.trim()) { setErro('Preencha ao menos a rua e o bairro do evento.'); return }
     if (!dataHora) { setErro('Escolha a data e hora do evento.'); return }
     if (lat === null || lng === null) { setErro('Posicione o local do evento no mapa.'); return }
     if (!session?.user) return
@@ -125,7 +126,7 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
 
         <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição (opcional)" className="w-full h-16 bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
-        <input type="text" value={linkIngresso} onChange={(e) => setLinkIngresso(e.target.value)} placeholder="Link de ingressos (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+        <input type="text" value={linkIngresso} onChange={(e) => setLinkIngresso(e.target.value)} placeholder="Link de ingressos (opcional — Sympla, Eventbrite, etc.)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
         <label className="flex items-center gap-2 text-[10px] font-mono text-accent/60 cursor-pointer">
           <Camera size={14} />
@@ -134,7 +135,7 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
         </label>
         {fotoPreview && <img src={fotoPreview} alt="Prévia" className="w-full rounded-lg border border-borderRaw max-h-32 object-cover" />}
 
-        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Endereço do evento (opcional)</span>
+        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Endereço do evento</span>
         <input type="text" value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Rua" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
         <div className="grid grid-cols-2 gap-2">
           <input type="text" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Número" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />

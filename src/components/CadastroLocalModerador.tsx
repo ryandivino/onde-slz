@@ -45,15 +45,18 @@ export function CadastroLocalModerador({
   }
 
   const irParaMapa = async () => {
+    if (!rua.trim() || !bairro.trim()) {
+      setErro('Preencha ao menos a rua e o bairro do local.')
+      return
+    }
+
     setErro(null)
     setEtapa('mapa')
     const endereco = enderecoCompleto()
-    if (endereco) {
-      setGeocodificando(true)
-      const resultado = await geocodificarEndereco(endereco)
-      if (resultado) setCentroSugerido(resultado)
-      setGeocodificando(false)
-    }
+    setGeocodificando(true)
+    const resultado = await geocodificarEndereco(endereco)
+    if (resultado) setCentroSugerido(resultado)
+    setGeocodificando(false)
   }
 
   const finalizar = () => {
@@ -94,7 +97,7 @@ export function CadastroLocalModerador({
 
         {etapa === 'endereco' && (
           <div className="space-y-3">
-            <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Endereço (opcional)</span>
+            <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Endereço</span>
             <input type="text" value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Rua" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <div className="grid grid-cols-2 gap-2">
               <input type="text" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Número" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />

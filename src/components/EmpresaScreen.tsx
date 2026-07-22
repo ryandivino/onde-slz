@@ -104,15 +104,18 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
   }
 
   const irParaMapa = async () => {
+    if (!rua.trim() || !bairro.trim()) {
+      setErro('Preencha ao menos a rua e o bairro do estabelecimento.')
+      return
+    }
+
     setErro(null)
     setEtapa('mapa')
     const endereco = enderecoCompleto()
-    if (endereco) {
-      setGeocodificando(true)
-      const resultado = await geocodificarEndereco(endereco)
-      if (resultado) setCentroSugerido(resultado)
-      setGeocodificando(false)
-    }
+    setGeocodificando(true)
+    const resultado = await geocodificarEndereco(endereco)
+    if (resultado) setCentroSugerido(resultado)
+    setGeocodificando(false)
   }
 
   const irParaConta = () => {
@@ -197,7 +200,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
               Seu estabelecimento já está no mapa?
             </span>
             <p className="text-[10px] text-accent/50">
-              Seu local pode já estar fixado no ONDE. Busque pelo nome antes de cadastrar do zero.
+              Seu local pode já estar no ONDE. Busque pelo nome antes de cadastrar do zero.
             </p>
 
             <div className="flex gap-2">
@@ -232,7 +235,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
             )}
 
             <button type="button" onClick={cadastrarLocalNovo} className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold">
-              Não encontrei — Adicionar novo local <ArrowRight size={13} />
+              Não encontrei. Adicionar novo local. <ArrowRight size={13} />
             </button>
           </div>
         )}
@@ -266,7 +269,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
 
         {modo === 'cadastrar' && etapa === 'endereco' && (
           <div className="space-y-3">
-            <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Etapa 2 — Endereço (opcional)</span>
+            <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Etapa 2 — Endereço</span>
             <input type="text" value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Rua" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <div className="grid grid-cols-2 gap-2">
               <input type="text" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Número" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />

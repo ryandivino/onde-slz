@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
-import { X, ShieldCheck, ShieldOff, Search } from 'lucide-react'
+import { X, ShieldCheck, ShieldOff, Search, Ban, CheckCircle } from 'lucide-react'
 
-type PerfilComAdmin = { id: string; apelido: string; is_admin: boolean; dono: boolean }
+type PerfilGerenciavel = { id: string; apelido: string; is_admin: boolean; dono: boolean; banido: boolean }
 
-export function ModeradoresManager({ onClose }: { onClose: () => void }) {
-  const { session, definirAdmin } = useAuth()
+export function GerenciarUsuariosManager({ onClose }: { onClose: () => void }) {
+  const { session, definirAdmin, definirBanido } = useAuth()
   const meuId = session?.user.id
 
-  const [moderadores, setModeradores] = useState<PerfilComAdmin[]>([])
+  const [moderadores, setModeradores] = useState<PerfilGerenciavel[]>([])
   const [termo, setTermo] = useState('')
-  const [resultados, setResultados] = useState<PerfilComAdmin[]>([])
+  const [resultados, setResultados] = useState<PerfilGerenciavel[]>([])
   const [buscando, setBuscando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   const carregarModeradores = useCallback(async () => {
-    const { data } = await supabase.from('profiles').select('id, apelido, is_admin, dono').eq('is_admin', true)
+    const { data } = await supabase.from('profiles').select('id, apelido, is_admin, dono, banido').eq('is_admin', true)
     setModeradores(data || [])
   }, [])
 
@@ -29,7 +29,7 @@ export function ModeradoresManager({ onClose }: { onClose: () => void }) {
     setBuscando(true)
     const { data } = await supabase
       .from('profiles')
-      .select('id, apelido, is_admin, dono')
+      .select('id, apelido, is_admin, dono, banido')
       .ilike('apelido', `%${valor.trim()}%`)
       .neq('id', meuId)
       .limit(10)
@@ -37,7 +37,7 @@ export function ModeradoresManager({ onClose }: { onClose: () => void }) {
     setBuscando(false)
   }
 
-  const alternar = async (perfil: PerfilComAdmin) => {
+  const alternarAdmin = async (perfil: PerfilGerenciavel) => {
     setErro(null)
     const { error } = await definirAdmin(perfil.id, !perfil.is_admin)
     if (error) { setErro(error.message); return }
@@ -45,10 +45,21 @@ export function ModeradoresManager({ onClose }: { onClose: () => void }) {
     setResultados((rs) => rs.map((r) => (r.id === perfil.id ? { ...r, is_admin: !r.is_admin } : r)))
   }
 
-  const removerAMimMesmo = async (perfil: PerfilComAdmin) => {
+  const removerAMimMesmo = async (perfil: PerfilGerenciavel) => {
     setErro(null)
     const { error } = await definirAdmin(perfil.id, false)
     if (error) { setErro(error.message); return }
+    await carregarModeradores()
+  }
+
+  const alternarBan = async (perfil: PerfilGerenciavel) => {
+    setErro(null)
+    const novoValor = !perfil.banido
+    if (novoValor && !confirm(`Suspender a conta @${perfil.apelido}? Ela não vai conseguir mais usar o ONDE, e todo o conteúdo dela fica escondido.`)) return
+
+    const { error } = await definirBanido(perfil.id, novoValor)
+    if (error) { setErro(error.message); return }
+    setResultados((rs) => rs.map((r) => (r.id === perfil.id ? { ...r, banido: novoValor } : r)))
     await carregarModeradores()
   }
 
@@ -57,7 +68,7 @@ export function ModeradoresManager({ onClose }: { onClose: () => void }) {
       <div className="w-full max-w-md bg-surface border border-amber-500/40 rounded-2xl p-6 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b border-borderRaw/40 pb-2">
           <span className="text-[10px] font-mono tracking-widest text-amber-500 flex items-center gap-2">
-            <ShieldCheck size={14} /> MODERADORES
+            <ShieldCheck size={14} /> GERENCIAR USUÁRIOS
           </span>
           <button onClick={onClose} className="text-accent/40 hover:text-accent"><X size={16} /></button>
         </div>
@@ -70,7 +81,7 @@ export function ModeradoresManager({ onClose }: { onClose: () => void }) {
             type="text"
             value={termo}
             onChange={(e) => lidarComBusca(e.target.value)}
-            placeholder="Buscar por @ para promover..."
+            placeholder="Buscar por @ para promover ou suspender..."
             className="w-full bg-background border border-borderRaw rounded-lg p-2 pl-7 text-xs"
           />
         </div>
@@ -84,14 +95,23 @@ export function ModeradoresManager({ onClose }: { onClose: () => void }) {
                 <span>
                   @{r.apelido}
                   {r.dono && <span className="ml-1 text-[8px] text-amber-500 border border-amber-500/40 rounded px-1">PROPRIETÁRIO</span>}
+                  {r.banido && <span className="ml-1 text-[8px] text-red-400 border border-red-400/40 rounded px-1">SUSPENSO</span>}
                 </span>
                 {!r.dono && (
-                  <button
-                    onClick={() => alternar(r)}
-                    className={`flex items-center gap-1 text-[9px] ${r.is_admin ? 'text-red-400' : 'text-accent/70'}`}
-                  >
-                    {r.is_admin ? <><ShieldOff size={13} /> REMOVER</> : <><ShieldCheck size={13} /> PROMOVER</>}
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => alternarAdmin(r)}
+                      className={`flex items-center gap-1 text-[9px] ${r.is_admin ? 'text-red-400' : 'text-accent/70'}`}
+                    >
+                      {r.is_admin ? <><ShieldOff size={13} /> REMOVER</> : <><ShieldCheck size={13} /> PROMOVER</>}
+                    </button>
+                    <button
+                      onClick={() => alternarBan(r)}
+                      className={`flex items-center gap-1 text-[9px] ${r.banido ? 'text-green-400' : 'text-red-400'}`}
+                    >
+                      {r.banido ? <><CheckCircle size={13} /> REATIVAR</> : <><Ban size={13} /> SUSPENDER</>}
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -109,7 +129,7 @@ export function ModeradoresManager({ onClose }: { onClose: () => void }) {
                 {m.dono && <span className="ml-1 text-[8px] text-amber-500 border border-amber-500/40 rounded px-1">PROPRIETÁRIO</span>}
               </span>
               {!m.dono && m.id !== meuId && (
-                <button onClick={() => alternar(m)} className="text-red-400 flex items-center gap-1 text-[9px]">
+                <button onClick={() => alternarAdmin(m)} className="text-red-400 flex items-center gap-1 text-[9px]">
                   <ShieldOff size={13} /> REMOVER
                 </button>
               )}

@@ -28,7 +28,17 @@ export function useEventosGerais() {
       .gte('data_hora', new Date().toISOString())
       .order('data_hora', { ascending: true })
 
-    if (!error && data) setEventos(data)
+    if (!error && data) {
+      const idsUnicos = [...new Set(data.map((e) => e.user_id).filter(Boolean))]
+      let idsBanidos = new Set<string>()
+
+      if (idsUnicos.length > 0) {
+        const { data: perfis } = await supabase.from('profiles').select('id, banido').in('id', idsUnicos)
+        idsBanidos = new Set((perfis || []).filter((p) => p.banido).map((p) => p.id))
+      }
+
+      setEventos(data.filter((e) => !e.user_id || !idsBanidos.has(e.user_id)))
+    }
     setCarregando(false)
   }, [])
 

@@ -32,12 +32,13 @@ import { ConfirmarLocalizacaoModal } from './components/ConfirmarLocalizacaoModa
 import { useLotacao } from './hooks/useLotacao'
 import { EventosManager } from './components/EventosManager'
 import { AnunciosManager } from './components/AnunciosManager'
-import { ModeradoresManager } from './components/ModeradoresManager'
+import { GerenciarUsuariosManager } from './components/GerenciarUsuariosManager'
+import { EventosGeraisManager } from './components/EventosGeraisManager'
 import { LoadingScreen } from './components/LoadingScreen'
 import { PoliticasModal, politicasJaAceitas } from './components/PoliticasModal'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
-import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2 } from 'lucide-react'
+import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair } from 'lucide-react'
 import logo from './assets/logo.png'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -56,12 +57,13 @@ const ICONE_POR_FILTRO: Record<string, React.ComponentType<{ size?: number }>> =
 }
 
 export default function App() {
-  const { usuarioLogado, perfil, session, emRecuperacaoSenha } = useAuth()
+  const { usuarioLogado, perfil, session, emRecuperacaoSenha, contaBanida, limparAvisoBanido } = useAuth()
   const { amigosIds } = useAmizades()
   const { totalNaoLidas } = useNotificacoes()
   const [isNotificacoesOpen, setIsNotificacoesOpen] = useState(false)
   const [isAnunciosManagerOpen, setIsAnunciosManagerOpen] = useState(false)
   const [isModeradoresOpen, setIsModeradoresOpen] = useState(false)
+  const [isEventosGeraisManagerOpen, setIsEventosGeraisManagerOpen] = useState(false)
   const [isDenunciasOpen, setIsDenunciasOpen] = useState(false)
   const [isPerfilOpen, setIsPerfilOpen] = useState(false)
   const [isEstatisticasOpen, setIsEstatisticasOpen] = useState(false)
@@ -216,13 +218,19 @@ export default function App() {
       // consegue montar esse relacionamento sozinho nesse caso.
       const idsUnicos = [...new Set(data.map((p) => p.user_id).filter(Boolean))]
       let mapaAvatares: Record<string, string | null> = {}
+      let idsBanidos = new Set<string>()
 
       if (idsUnicos.length > 0) {
-        const { data: perfis } = await supabase.from('profiles').select('id, avatar_url').in('id', idsUnicos)
+        const { data: perfis } = await supabase.from('profiles').select('id, avatar_url, banido').in('id', idsUnicos)
         mapaAvatares = Object.fromEntries((perfis || []).map((p) => [p.id, p.avatar_url]))
+        idsBanidos = new Set((perfis || []).filter((p) => p.banido).map((p) => p.id))
       }
 
-      const relatosComAvatar = data.map((p) => ({
+      // Conteúdo de conta banida não aparece mais no app — sem precisar
+      // apagar post por post, esconde tudo de quem foi suspenso.
+      const dataSemBanidos = data.filter((p) => !p.user_id || !idsBanidos.has(p.user_id))
+
+      const relatosComAvatar = dataSemBanidos.map((p) => ({
         ...p,
         autor: { avatar_url: p.user_id ? mapaAvatares[p.user_id] ?? null : null }
       }))
@@ -598,7 +606,7 @@ export default function App() {
                       <Flag size={13} />
                     </button>
                     <button onClick={() => irParaNoMapa(relato.lat, relato.lng)} className="text-accent/50 hover:text-accent">
-                      <MapPin size={14} />
+                      <Crosshair size={14} />
                     </button>
                     <button onClick={() => setRotaAlvo({ lat: relato.lat, lng: relato.lng })} className="text-accent/50 hover:text-accent">
                       <Navigation size={13} />
@@ -606,6 +614,11 @@ export default function App() {
                   </div>
                 </div>
                 <p className="text-xs text-accent/70">"{relato.texto}"</p>
+                {relato.endereco && (
+                  <p className="text-[10px] text-accent/40 flex items-center gap-1">
+                    <MapPin size={10} className="flex-shrink-0" /> {relato.endereco}
+                  </p>
+                )}
 
                 {(() => {
                   const resumo = resumoPorLocal(relato.id)
@@ -667,7 +680,11 @@ export default function App() {
                   </button>
                 )}
 
-                {isAdmin && <button onClick={() => deletarRelato(relato.id)} className="text-[9px] text-red-500">[DELETAR]</button>}
+                {(isAdmin || perfil?.id === relato.user_id) && (
+                  <button onClick={() => deletarRelato(relato.id)} className="text-accent/40 hover:text-red-500">
+                    <Trash2 size={12} />
+                  </button>
+                )}
               </div>
             ))}
 
@@ -691,7 +708,7 @@ export default function App() {
                     {relato.lat !== null && relato.lng !== null && (
                       <>
                         <button onClick={() => irParaNoMapa(relato.lat, relato.lng)} className="text-accent/50 hover:text-accent">
-                          <MapPin size={14} />
+                          <Crosshair size={14} />
                         </button>
                         <button onClick={() => setRotaAlvo({ lat: relato.lat, lng: relato.lng })} className="text-accent/50 hover:text-accent">
                           <Navigation size={13} />
@@ -714,7 +731,11 @@ export default function App() {
                 )}
                 <p className="text-xs text-accent/80">"{relato.texto}"</p>
                 <span className="text-[9px] text-accent/40 italic">{formatarTempoRelativo(relato.created_at)}</span>
-                {isAdmin && <button onClick={() => deletarRelato(relato.id)} className="text-[9px] text-red-500 ml-2">[DELETAR]</button>}
+                {(isAdmin || perfil?.id === relato.user_id) && (
+                  <button onClick={() => deletarRelato(relato.id)} className="text-accent/40 hover:text-red-500 ml-2">
+                    <Trash2 size={12} />
+                  </button>
+                )}
               </div>
             ))}
 
@@ -749,7 +770,7 @@ export default function App() {
                           <Flag size={13} />
                         </button>
                         <button onClick={() => irParaNoMapa(evento.lat, evento.lng)} className="text-accent/50 hover:text-accent">
-                          <MapPin size={14} />
+                          <Crosshair size={14} />
                         </button>
                         <button onClick={() => setRotaAlvo({ lat: evento.lat, lng: evento.lng })} className="text-accent/50 hover:text-accent">
                           <Navigation size={13} />
@@ -762,6 +783,11 @@ export default function App() {
                       </div>
                     </div>
                     {evento.descricao && <p className="text-xs text-accent/70">{evento.descricao}</p>}
+                    {evento.endereco && (
+                      <p className="text-[10px] text-accent/40 flex items-center gap-1">
+                        <MapPin size={10} className="flex-shrink-0" /> {evento.endereco}
+                      </p>
+                    )}
                     {evento.link_ingresso && (
                       <a href={evento.link_ingresso} target="_blank" rel="noopener noreferrer" className="inline-block text-[10px] font-mono uppercase text-background bg-accent rounded-lg px-3 py-1.5 mt-1">
                         Comprar ingresso
@@ -827,6 +853,7 @@ export default function App() {
           onAbrirEmpresa={() => { setIsMenuOpen(false); setIsEmpresaOpen(true) }}
           onAbrirAnuncios={() => { setIsMenuOpen(false); setIsAnunciosManagerOpen(true) }}
           onAbrirModeradores={() => { setIsMenuOpen(false); setIsModeradoresOpen(true) }}
+          onAbrirEventosGerais={() => { setIsMenuOpen(false); setIsEventosGeraisManagerOpen(true) }}
           onAbrirDenuncias={() => { setIsMenuOpen(false); setIsDenunciasOpen(true) }}
           onAbrirPerfil={() => { setIsMenuOpen(false); setIsPerfilOpen(true) }}
           onAbrirEstatisticas={() => { setIsMenuOpen(false); setIsEstatisticasOpen(true) }}
@@ -866,12 +893,30 @@ export default function App() {
 
       {emRecuperacaoSenha && <NovaSenhaScreen />}
 
+      {contaBanida && (
+        <div className="fixed inset-0 bg-background z-[10001] flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-surface border border-red-500/40 rounded-2xl p-6 space-y-4 text-center">
+            <span className="text-[10px] font-mono tracking-widest text-red-400 block">CONTA SUSPENSA</span>
+            <p className="text-xs text-accent/70">
+              Sua conta foi suspensa por um moderador do ONDE e não pode mais ser usada. Se você acha que isso foi um erro, entre em contato pelo suporte.
+            </p>
+            <button onClick={limparAvisoBanido} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs">
+              ENTENDI
+            </button>
+          </div>
+        </div>
+      )}
+
       {isAnunciosManagerOpen && (
         <AnunciosManager onClose={() => setIsAnunciosManagerOpen(false)} />
       )}
 
       {isModeradoresOpen && (
-        <ModeradoresManager onClose={() => setIsModeradoresOpen(false)} />
+        <GerenciarUsuariosManager onClose={() => setIsModeradoresOpen(false)} />
+      )}
+
+      {isEventosGeraisManagerOpen && (
+        <EventosGeraisManager onClose={() => setIsEventosGeraisManagerOpen(false)} />
       )}
 
       {pulsoParaDenunciar !== null && (

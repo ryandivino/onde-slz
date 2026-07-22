@@ -119,7 +119,9 @@ export function MapaLocalPicker({
         )}
       </div>
       {!bloqueado && (
-        <p className="text-[9px] text-accent/40">Arraste o pino ou toque no mapa pra posicionar exatamente no local desejado.</p>
+        <p className="text-[9px] text-amber-500/80">
+          A localização processada pode não ser exata! Confirme se o pino está bem no local antes de concluir. Se não estiver, arraste-o ou toque no lugar certo do mapa.
+        </p>
       )}
     </div>
   )

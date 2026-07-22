@@ -1,6 +1,6 @@
 import React from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { LogOut, ShieldCheck, User, Pencil, X, Store, Image, Flag, Mail, BarChart3 } from 'lucide-react'
+import { LogOut, ShieldCheck, User, Pencil, X, Store, Image, Flag, Mail, BarChart3, Calendar } from 'lucide-react'
 
 export function MenuPanel({
   onClose,
@@ -8,6 +8,7 @@ export function MenuPanel({
   onAbrirEmpresa,
   onAbrirAnuncios,
   onAbrirModeradores,
+  onAbrirEventosGerais,
   onAbrirDenuncias,
   onAbrirPerfil,
   onAbrirEstatisticas,
@@ -19,6 +20,7 @@ export function MenuPanel({
   onAbrirEmpresa: () => void
   onAbrirAnuncios: () => void
   onAbrirModeradores: () => void
+  onAbrirEventosGerais: () => void
   onAbrirDenuncias: () => void
   onAbrirPerfil: () => void
   onAbrirEstatisticas: () => void
@@ -86,7 +88,17 @@ export function MenuPanel({
                 className="w-full flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 px-3 rounded-lg border border-amber-500/40 text-amber-500"
               >
                 <ShieldCheck size={14} />
-                Gerenciar Moderadores
+                Gerenciar Usuários
+              </button>
+            )}
+
+            {perfil.is_admin && modoModerador && (
+              <button
+                onClick={onAbrirEventosGerais}
+                className="w-full flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 px-3 rounded-lg border border-amber-500/40 text-amber-500"
+              >
+                <Calendar size={14} />
+                Gerenciar Eventos
               </button>
             )}
 

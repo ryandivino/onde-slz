@@ -11,6 +11,7 @@ export type Perfil = {
   avatar_url: string | null
   bio: string | null
   created_at: string
+  banido: boolean
 }
 
 const MENSAGEM_APELIDO_EM_USO = 'Esse @ já está em uso. Escolha outro.'
@@ -26,6 +27,10 @@ function useAuthState() {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [carregandoAuth, setCarregandoAuth] = useState(true)
   const [emRecuperacaoSenha, setEmRecuperacaoSenha] = useState(false)
+  // Guardado separado da sessão/perfil de propósito: quando a conta é
+  // banida, a gente desloga na hora (session/perfil somem), mas ainda
+  // precisa mostrar a tela avisando por que isso aconteceu.
+  const [contaBanida, setContaBanida] = useState(false)
 
   const buscarPerfil = useCallback(async (userId: string) => {
     const { data, error } = await supabase
@@ -39,6 +44,14 @@ function useAuthState() {
       setPerfil(null)
       return
     }
+
+    if (data?.banido) {
+      setContaBanida(true)
+      setPerfil(null)
+      await supabase.auth.signOut()
+      return
+    }
+
     setPerfil(data)
   }, [])
 
@@ -266,12 +279,19 @@ function useAuthState() {
     return { error }
   }
 
+  const definirBanido = async (targetId: string, banido: boolean, motivo?: string) => {
+    const { error } = await supabase.from('profiles').update({ banido, motivo_ban: banido ? (motivo || null) : null }).eq('id', targetId)
+    return { error }
+  }
+
   return {
     session,
     perfil,
     usuarioLogado: !!session?.user,
     carregandoAuth,
     emRecuperacaoSenha,
+    contaBanida,
+    limparAvisoBanido: () => setContaBanida(false),
     cadastrar,
     cadastrarEmpresa,
     entrar,
@@ -281,7 +301,8 @@ function useAuthState() {
     atualizarBio,
     enviarLinkRecuperacao,
     definirNovaSenha,
-    definirAdmin
+    definirAdmin,
+    definirBanido
   }
 }
 
