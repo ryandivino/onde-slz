@@ -235,7 +235,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
             )}
 
             <button type="button" onClick={cadastrarLocalNovo} className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold">
-              Não encontrei. Adicionar novo local. <ArrowRight size={13} />
+              Não encontrei / Adicionar novo local <ArrowRight size={13} />
             </button>
           </div>
         )}
