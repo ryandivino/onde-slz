@@ -30,7 +30,7 @@ export function DenunciaModal({
       <div className="w-full max-w-sm bg-surface border border-borderRaw rounded-2xl p-6 space-y-4 shadow-2xl">
         <div className="flex justify-between items-center border-b border-borderRaw/40 pb-2">
           <span className="text-[10px] font-mono tracking-widest text-red-400 flex items-center gap-2">
-            <Flag size={14} /> {eventoId ? 'DENUNCIAR EVENTO' : 'DENUNCIAR POST'}
+            <Flag size={14} /> {eventoId ? 'DENUNCIAR' : 'DENUNCIAR'}
           </span>
           <button onClick={onClose} className="text-accent/40 hover:text-accent"><X size={16} /></button>
         </div>

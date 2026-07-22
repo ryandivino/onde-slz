@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
-import { X, Calendar, Camera } from 'lucide-react'
+import { X, Calendar, Camera, MapPin } from 'lucide-react'
 import { MapaLocalPicker } from './MapaLocalPicker'
 import { geocodificarEndereco } from '../utils/geocodificarEndereco'
 
 const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
+
+function agoraFormatadoParaInput() {
+  const agora = new Date()
+  agora.setMinutes(agora.getMinutes() - agora.getTimezoneOffset())
+  return agora.toISOString().slice(0, 16)
+}
 
 export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onPublicado: () => void }) {
   const { session } = useAuth()
 
   const [titulo, setTitulo] = useState('')
   const [categoria, setCategoria] = useState(CATEGORIAS_BASE[0])
-  const [dataHora, setDataHora] = useState('')
+  const [dataHora, setDataHora] = useState(agoraFormatadoParaInput())
   const [descricao, setDescricao] = useState('')
   const [linkIngresso, setLinkIngresso] = useState('')
   const [foto, setFoto] = useState<File | null>(null)
@@ -122,11 +128,14 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
           {CATEGORIAS_BASE.map((c) => (<option key={c} value={c}>{c}</option>))}
         </select>
 
+        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest flex items-center gap-1.5">
+          <Calendar size={11} /> Data e horário do evento *
+        </span>
         <input type="datetime-local" value={dataHora} onChange={(e) => setDataHora(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
         <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição (opcional)" className="w-full h-16 bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
-        <input type="text" value={linkIngresso} onChange={(e) => setLinkIngresso(e.target.value)} placeholder="Link de ingressos (opcional — Sympla, Eventbrite, etc.)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+        <input type="text" value={linkIngresso} onChange={(e) => setLinkIngresso(e.target.value)} placeholder="Link de ingressos (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
         <label className="flex items-center gap-2 text-[10px] font-mono text-accent/60 cursor-pointer">
           <Camera size={14} />
@@ -135,7 +144,9 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
         </label>
         {fotoPreview && <img src={fotoPreview} alt="Prévia" className="w-full rounded-lg border border-borderRaw max-h-32 object-cover" />}
 
-        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Endereço do evento</span>
+        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest flex items-center gap-1.5">
+          <MapPin size={11} /> Endereço do evento *
+        </span>
         <input type="text" value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Rua" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
         <div className="grid grid-cols-2 gap-2">
           <input type="text" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Número" className="bg-background border border-borderRaw rounded-lg p-2 text-xs" />
@@ -154,7 +165,9 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
           {geocodificando ? 'Localizando...' : 'Levar o pino pra esse endereço'}
         </button>
 
-        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Local do evento</span>
+        <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest flex items-center gap-1.5">
+          <MapPin size={11} /> Local do evento *
+        </span>
         <MapaLocalPicker lat={lat} lng={lng} centroSugerido={centroSugerido} onChange={(novoLat, novoLng) => { setLat(novoLat); setLng(novoLng) }} />
 
         <button type="button" onClick={publicar} disabled={enviando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs">

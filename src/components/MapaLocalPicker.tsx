@@ -120,7 +120,7 @@ export function MapaLocalPicker({
       </div>
       {!bloqueado && (
         <p className="text-[9px] text-amber-500/80">
-          A localização processada pode não ser exata! Confirme se o pino está bem no local antes de concluir. Se não estiver, arraste-o ou toque no lugar certo do mapa.
+          A localização processada pode não ser exata. Confirme se o pino está precisamente no local antes de concluir. Se não estiver, arraste-o ou toque no lugar certo do mapa.
         </p>
       )}
     </div>
