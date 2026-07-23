@@ -9,6 +9,7 @@ export function MenuPanel({
   onAbrirAnuncios,
   onAbrirModeradores,
   onAbrirEventosGerais,
+  onAbrirPoliticas,
   onAbrirDenuncias,
   onAbrirPerfil,
   onAbrirEstatisticas,
@@ -21,6 +22,7 @@ export function MenuPanel({
   onAbrirAnuncios: () => void
   onAbrirModeradores: () => void
   onAbrirEventosGerais: () => void
+  onAbrirPoliticas: () => void
   onAbrirDenuncias: () => void
   onAbrirPerfil: () => void
   onAbrirEstatisticas: () => void
@@ -157,6 +159,14 @@ export function MenuPanel({
           <Mail size={14} />
           Suporte
         </a>
+
+        <button
+          onClick={onAbrirPoliticas}
+          className="w-full flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 px-3 rounded-lg border border-borderRaw text-accent/50"
+        >
+          <ShieldCheck size={14} />
+          Políticas e Diretrizes
+        </button>
       </div>
     </div>
   )

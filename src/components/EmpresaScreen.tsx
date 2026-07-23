@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../supabase'
 import { X, Store, ArrowRight, ArrowLeft, Search } from 'lucide-react'
 import { MapaLocalPicker } from './MapaLocalPicker'
+import { PoliticasPopup } from './PoliticasModal'
 import { AtributosEstabelecimento } from './AtributosEstabelecimento'
 import type { Atributos } from './AtributosEstabelecimento'
 import { geocodificarEndereco } from '../utils/geocodificarEndereco'
@@ -51,6 +52,8 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
   const [apelido, setApelido] = useState('')
 
   const [erro, setErro] = useState<string | null>(null)
+  const [aceitouPoliticas, setAceitouPoliticas] = useState(false)
+  const [mostrarPoliticas, setMostrarPoliticas] = useState(false)
   const [carregando, setCarregando] = useState(false)
   const [aguardandoConfirmacao, setAguardandoConfirmacao] = useState(false)
 
@@ -127,6 +130,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
   const finalizarCadastro = async () => {
     if (!apelido.trim()) { setErro('Preencha o @ do estabelecimento.'); return }
     if (!email.trim() || !senha.trim()) { setErro('Preencha e-mail e senha.'); return }
+    if (!aceitouPoliticas) { setErro('Você precisa aceitar as políticas e diretrizes pra criar uma conta.'); return }
     if (lat === null || lng === null) return
 
     setErro(null)
@@ -135,7 +139,8 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
     const { error, precisaConfirmarEmail } = await cadastrarEmpresa(
       email, senha, apelido.trim(), nomeEstabelecimento.trim(),
       lat, lng, categoria, '',
-      { telefone, site, horarioFuncionamento: horario, endereco: enderecoCompleto(), atributos, pulsoReivindicadoId: pulsoReivindicado?.id }
+      { telefone, site, horarioFuncionamento: horario, endereco: enderecoCompleto(), atributos, pulsoReivindicadoId: pulsoReivindicado?.id },
+      aceitouPoliticas
     )
 
     if (error) setErro(error.message)
@@ -200,7 +205,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
               Seu estabelecimento já está no mapa?
             </span>
             <p className="text-[10px] text-accent/50">
-              Seu local pode já estar no ONDE. Busque pelo nome antes de cadastrar do zero.
+              Seu local pode já existir no ONDE. Busque pelo nome antes de cadastrar do zero.
             </p>
 
             <div className="flex gap-2">
@@ -235,7 +240,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
             )}
 
             <button type="button" onClick={cadastrarLocalNovo} className="w-full flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg bg-accent text-background font-bold">
-              Não encontrei / Adicionar novo local <ArrowRight size={13} />
+              Não encontrei — Adicionar novo local <ArrowRight size={13} />
             </button>
           </div>
         )}
@@ -244,7 +249,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
           <div className="space-y-3">
             <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Etapa 1 — Dados do estabelecimento</span>
             {pulsoReivindicado && (
-              <p className="text-[9px] text-green-400">📍 Usando o local "{pulsoReivindicado.nome_local}" já fixado no mapa: os dados abaixo vão sobrepor os dados já existentes.</p>
+              <p className="text-[9px] text-green-400">📍 Usando o local "{pulsoReivindicado.nome_local}" já fixado no mapa — os dados abaixo vão sobrepor os já existentes.</p>
             )}
             <input type="text" value={nomeEstabelecimento} onChange={(e) => setNomeEstabelecimento(e.target.value)} placeholder="Nome do estabelecimento *" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
@@ -315,6 +320,22 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
             <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Senha" minLength={6} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <input type="text" value={apelido} onChange={(e) => setApelido(e.target.value)} placeholder="@ do estabelecimento (ex: bardojoao)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
+            <label className="flex items-start gap-2 text-[10px] font-mono text-accent/60">
+              <input
+                type="checkbox"
+                checked={aceitouPoliticas}
+                onChange={(e) => setAceitouPoliticas(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Li e aceito as{' '}
+                <button type="button" onClick={() => setMostrarPoliticas(true)} className="underline text-accent/80">
+                  políticas e diretrizes
+                </button>{' '}
+                do ONDE
+              </span>
+            </label>
+
             <div className="flex gap-2">
               <button type="button" onClick={() => setEtapa('mapa')} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-widest py-2.5 rounded-lg border border-borderRaw text-accent/60">
                 <ArrowLeft size={13} /> Voltar
@@ -334,6 +355,8 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
           {modo === 'entrar' ? 'Ainda não tem cadastro? Cadastrar estabelecimento' : 'Já tem conta de estabelecimento? Entrar'}
         </button>
       </div>
+
+      {mostrarPoliticas && <PoliticasPopup onClose={() => setMostrarPoliticas(false)} />}
     </div>
   )
 }

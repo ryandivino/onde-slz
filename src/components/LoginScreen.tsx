@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { X } from 'lucide-react'
+import { PoliticasPopup } from './PoliticasModal'
 
 const LIMITE_TENTATIVAS = 15
 
@@ -33,6 +34,8 @@ export function LoginScreen({ onClose }: { onClose: () => void }) {
   const [aguardandoConfirmacao, setAguardandoConfirmacao] = useState(false)
   const [tentativas, setTentativas] = useState(0)
   const [linkRecuperacaoEnviado, setLinkRecuperacaoEnviado] = useState(false)
+  const [aceitouPoliticas, setAceitouPoliticas] = useState(false)
+  const [mostrarPoliticas, setMostrarPoliticas] = useState(false)
 
   const lidarComSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,7 +65,12 @@ export function LoginScreen({ onClose }: { onClose: () => void }) {
         setCarregando(false)
         return
       }
-      const { error, precisaConfirmarEmail } = await cadastrar(email, senha, apelido.trim())
+      if (!aceitouPoliticas) {
+        setErro('Você precisa aceitar as políticas e diretrizes pra criar uma conta.')
+        setCarregando(false)
+        return
+      }
+      const { error, precisaConfirmarEmail } = await cadastrar(email, senha, apelido.trim(), aceitouPoliticas)
       if (error) {
         setErro(error.message)
       } else if (precisaConfirmarEmail) {
@@ -184,6 +192,24 @@ export function LoginScreen({ onClose }: { onClose: () => void }) {
           />
         )}
 
+        {modo === 'cadastrar' && (
+          <label className="flex items-start gap-2 text-[10px] font-mono text-accent/60">
+            <input
+              type="checkbox"
+              checked={aceitouPoliticas}
+              onChange={(e) => setAceitouPoliticas(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Li e aceito as{' '}
+              <button type="button" onClick={() => setMostrarPoliticas(true)} className="underline text-accent/80">
+                políticas e diretrizes
+              </button>{' '}
+              do ONDE
+            </span>
+          </label>
+        )}
+
         <button type="submit" disabled={carregando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs">
           {carregando ? 'AGUARDE...' : modo === 'entrar' ? 'ENTRAR' : modo === 'cadastrar' ? 'CRIAR CONTA' : 'ENVIAR LINK DE RECUPERAÇÃO'}
         </button>
@@ -202,6 +228,8 @@ export function LoginScreen({ onClose }: { onClose: () => void }) {
           </button>
         )}
       </form>
+
+      {mostrarPoliticas && <PoliticasPopup onClose={() => setMostrarPoliticas(false)} />}
     </div>
   )
 }

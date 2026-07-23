@@ -35,7 +35,7 @@ import { AnunciosManager } from './components/AnunciosManager'
 import { GerenciarUsuariosManager } from './components/GerenciarUsuariosManager'
 import { EventosGeraisManager } from './components/EventosGeraisManager'
 import { LoadingScreen } from './components/LoadingScreen'
-import { PoliticasModal, politicasJaAceitas } from './components/PoliticasModal'
+import { PoliticasPopup } from './components/PoliticasModal'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
 import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair } from 'lucide-react'
@@ -82,10 +82,12 @@ export default function App() {
   const [eventoParaDenunciar, setEventoParaDenunciar] = useState<number | null>(null)
   const [perfilPublicoAlvo, setPerfilPublicoAlvo] = useState<string | null>(null)
 
-  // Fluxo de abertura do app: loading -> políticas (se ainda não aceitas) -> anúncio (no máx. 1x por dia)
+  // Fluxo de abertura do app: loading -> anúncio (no máx. 1x por dia).
+  // O aceite das políticas não bloqueia mais a abertura — passou a fazer
+  // parte do cadastro de conta (ver checkbox no LoginScreen/EmpresaScreen).
   const [mostrarLoading, setMostrarLoading] = useState(true)
-  const [politicasAceitas, setPoliticasAceitas] = useState(politicasJaAceitas())
   const [mostrarAd, setMostrarAd] = useState(false)
+  const [mostrarPoliticasPopup, setMostrarPoliticasPopup] = useState(false)
 
   const CHAVE_ULTIMO_AD = 'onde_ultimo_anuncio_mostrado'
   const UM_DIA_MS = 24 * 60 * 60 * 1000
@@ -102,11 +104,6 @@ export default function App() {
 
   const iniciarApp = () => {
     setMostrarLoading(false)
-    if (politicasAceitas && devoMostrarAd()) setMostrarAd(true)
-  }
-
-  const aceitarPoliticas = () => {
-    setPoliticasAceitas(true)
     if (devoMostrarAd()) setMostrarAd(true)
   }
   const [isAmigosOpen, setIsAmigosOpen] = useState(false)
@@ -854,6 +851,7 @@ export default function App() {
           onAbrirAnuncios={() => { setIsMenuOpen(false); setIsAnunciosManagerOpen(true) }}
           onAbrirModeradores={() => { setIsMenuOpen(false); setIsModeradoresOpen(true) }}
           onAbrirEventosGerais={() => { setIsMenuOpen(false); setIsEventosGeraisManagerOpen(true) }}
+          onAbrirPoliticas={() => { setIsMenuOpen(false); setMostrarPoliticasPopup(true) }}
           onAbrirDenuncias={() => { setIsMenuOpen(false); setIsDenunciasOpen(true) }}
           onAbrirPerfil={() => { setIsMenuOpen(false); setIsPerfilOpen(true) }}
           onAbrirEstatisticas={() => { setIsMenuOpen(false); setIsEstatisticasOpen(true) }}
@@ -886,12 +884,12 @@ export default function App() {
 
       {mostrarLoading && <LoadingScreen onIniciar={iniciarApp} />}
 
-      {!mostrarLoading && !politicasAceitas && (
-        <PoliticasModal onAceitar={aceitarPoliticas} />
+      {!mostrarLoading && mostrarAd && (
+        <AdBanner onClose={() => setMostrarAd(false)} onAdMostrado={marcarAdComoMostrado} />
       )}
 
-      {!mostrarLoading && politicasAceitas && mostrarAd && (
-        <AdBanner onClose={() => setMostrarAd(false)} onAdMostrado={marcarAdComoMostrado} />
+      {mostrarPoliticasPopup && (
+        <PoliticasPopup onClose={() => setMostrarPoliticasPopup(false)} />
       )}
 
       {emRecuperacaoSenha && <NovaSenhaScreen />}

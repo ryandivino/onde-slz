@@ -12,6 +12,7 @@ export type Perfil = {
   bio: string | null
   created_at: string
   banido: boolean
+  aceitou_politicas: boolean
 }
 
 const MENSAGEM_APELIDO_EM_USO = 'Esse @ já está em uso. Escolha outro.'
@@ -120,8 +121,10 @@ function useAuthState() {
     return error instanceof Error ? error : new Error('Não foi possível completar a ação. Tente novamente.')
   }
 
-  const cadastrar = async (email: string, senha: string, apelido: string) => {
+  const cadastrar = async (email: string, senha: string, apelido: string, aceitouPoliticas: boolean) => {
     const apelidoLimpo = apelido.trim()
+
+    if (!aceitouPoliticas) return { error: new Error('É preciso aceitar as políticas e diretrizes pra criar uma conta.'), precisaConfirmarEmail: false }
 
     const { disponivel, error: erroCheck } = await apelidoDisponivel(apelidoLimpo)
     if (erroCheck) return { error: erroCheck, precisaConfirmarEmail: false }
@@ -131,7 +134,7 @@ function useAuthState() {
       email,
       password: senha,
       options: {
-        data: { apelido: apelidoLimpo },
+        data: { apelido: apelidoLimpo, aceitou_politicas: true },
         emailRedirectTo: window.location.origin
       }
     })
@@ -168,9 +171,12 @@ function useAuthState() {
       endereco?: string
       atributos?: Record<string, boolean>
       pulsoReivindicadoId?: number
-    }
+    },
+    aceitouPoliticas?: boolean
   ) => {
     const apelidoLimpo = apelido.trim()
+
+    if (!aceitouPoliticas) return { error: new Error('É preciso aceitar as políticas e diretrizes pra criar uma conta.'), precisaConfirmarEmail: false }
 
     const { disponivel, error: erroCheck } = await apelidoDisponivel(apelidoLimpo)
     if (erroCheck) return { error: erroCheck, precisaConfirmarEmail: false }
@@ -193,7 +199,8 @@ function useAuthState() {
           horario_funcionamento: dadosExtras?.horarioFuncionamento?.trim() || null,
           endereco: dadosExtras?.endereco?.trim() || null,
           atributos: dadosExtras?.atributos || {},
-          claimed_pulso_id: dadosExtras?.pulsoReivindicadoId ?? null
+          claimed_pulso_id: dadosExtras?.pulsoReivindicadoId ?? null,
+          aceitou_politicas: true
         },
         emailRedirectTo: window.location.origin
       }
