@@ -38,13 +38,17 @@ export function AgoraStories({ posts, onAbrirGrupo }: { posts: PostAgora[]; onAb
       mapa.set(chave, lista)
     })
 
-    return Array.from(mapa.entries()).map(([chave, postsDoGrupo]) => ({
-      chave,
-      apelido: postsDoGrupo[0].apelido || 'ANÔNIMO',
-      thumbnail: postsDoGrupo[0].image_url,
-      posts: postsDoGrupo,
-      temNaoVisto: postsDoGrupo.some((p) => !vistos.has(p.id))
-    }))
+    return Array.from(mapa.entries())
+      .map(([chave, postsDoGrupo]) => ({
+        chave,
+        apelido: postsDoGrupo[0].apelido || 'ANÔNIMO',
+        thumbnail: postsDoGrupo[0].image_url, // posts[0] continua sendo o mais recente da pessoa, isso não muda
+        posts: postsDoGrupo,
+        temNaoVisto: postsDoGrupo.some((p) => !vistos.has(p.id))
+      }))
+      // Ordena os CÍRCULOS do mais antigo pro mais recente — o post mais
+      // recente de cada grupo decide a posição, ficando no final da fileira.
+      .sort((a, b) => new Date(a.posts[0].created_at).getTime() - new Date(b.posts[0].created_at).getTime())
   }, [posts, vistos])
 
   if (grupos.length === 0) return null

@@ -59,7 +59,7 @@ const ICONE_POR_FILTRO: Record<string, React.ComponentType<{ size?: number }>> =
 export default function App() {
   const { usuarioLogado, perfil, session, emRecuperacaoSenha, contaBanida, limparAvisoBanido } = useAuth()
   const { mutuosIds } = useConexoes()
-  const { totalNaoLidas } = useNotificacoes()
+  const { totalNaoLidas, notificacoes, marcarTodasComoLidas, carregando: carregandoNotificacoes } = useNotificacoes()
   const [isNotificacoesOpen, setIsNotificacoesOpen] = useState(false)
   const [isAnunciosManagerOpen, setIsAnunciosManagerOpen] = useState(false)
   const [isModeradoresOpen, setIsModeradoresOpen] = useState(false)
@@ -876,6 +876,9 @@ export default function App() {
 
       {isNotificacoesOpen && (
         <NotificationsPanel
+          notificacoes={notificacoes}
+          marcarTodasComoLidas={marcarTodasComoLidas}
+          carregando={carregandoNotificacoes}
           onClose={() => setIsNotificacoesOpen(false)}
           onIrParaNoMapa={(lat, lng) => { irParaNoMapa(lat, lng); setIsNotificacoesOpen(false) }}
         />

@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useEmpresa } from '../hooks/useEmpresa'
-import { useAmizades } from '../hooks/useAmizades'
 import { useSeguidores } from '../hooks/useSeguidores'
-import { X, Camera, Pencil, Check, Users } from 'lucide-react'
+import { ListaConexoesModal } from './ListaConexoesModal'
+import { X, Camera, Pencil, Check } from 'lucide-react'
 import { AtributosEstabelecimento } from './AtributosEstabelecimento'
 import type { Atributos } from './AtributosEstabelecimento'
 
 export function PerfilScreen({ onClose }: { onClose: () => void }) {
   const { perfil, enviarAvatar, atualizarBio, atualizarApelido } = useAuth()
   const { empresa, atualizarEmpresa } = useEmpresa()
-  const { amigos } = useAmizades()
   const { totalSeguidores, totalSeguindo } = useSeguidores(perfil?.id ?? null)
+  const [listaAberta, setListaAberta] = useState<'seguindo' | 'seguidores' | null>(null)
   const inputAvatarRef = useRef<HTMLInputElement>(null)
 
   const [enviandoAvatar, setEnviandoAvatar] = useState(false)
@@ -154,11 +154,10 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Amigos + Seguidores/Seguindo — só contagem, visível só pro próprio dono (não clicável) */}
+        {/* Seguindo/Seguidores — clicáveis, abrem a lista */}
         <div className="flex items-center justify-center gap-4 text-[11px] font-mono text-accent/50 border-y border-borderRaw/20 py-2">
-          <span className="flex items-center gap-1.5"><Users size={13} /> {amigos.length} amigo{amigos.length !== 1 ? 's' : ''}</span>
-          <span>{totalSeguidores} seguidor{totalSeguidores !== 1 ? 'es' : ''}</span>
-          <span>{totalSeguindo} seguindo</span>
+          <button onClick={() => setListaAberta('seguidores')} className="hover:text-accent">{totalSeguidores} seguidor{totalSeguidores !== 1 ? 'es' : ''}</button>
+          <button onClick={() => setListaAberta('seguindo')} className="hover:text-accent">{totalSeguindo} seguindo</button>
         </div>
 
         {/* Bio */}
@@ -195,6 +194,10 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
+
+      {listaAberta && perfil && (
+        <ListaConexoesModal perfilId={perfil.id} tipo={listaAberta} onClose={() => setListaAberta(null)} />
+      )}
     </div>
   )
 }

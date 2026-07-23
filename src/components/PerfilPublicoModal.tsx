@@ -3,6 +3,7 @@ import { supabase } from '../supabase'
 import { X, Store, Phone, AtSign, Globe, Clock, MapPin, UserPlus, UserCheck } from 'lucide-react'
 import { ATRIBUTOS_DISPONIVEIS } from './AtributosEstabelecimento'
 import { useSeguidores } from '../hooks/useSeguidores'
+import { ListaConexoesModal } from './ListaConexoesModal'
 
 type PerfilPublico = {
   apelido: string
@@ -26,7 +27,8 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
   const [perfil, setPerfil] = useState<PerfilPublico | null>(null)
   const [empresa, setEmpresa] = useState<EmpresaPublica | null>(null)
   const [carregando, setCarregando] = useState(true)
-  const { totalSeguidores, euSigo, alternarSeguir } = useSeguidores(userId)
+  const { totalSeguidores, totalSeguindo, euSigo, alternarSeguir } = useSeguidores(userId)
+  const [listaAberta, setListaAberta] = useState<'seguindo' | 'seguidores' | null>(null)
 
   useEffect(() => {
     let cancelado = false
@@ -90,7 +92,10 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
               </div>
               {perfil.bio && <p className="text-xs text-accent/60 text-center">{perfil.bio}</p>}
 
-              <span className="text-[10px] text-accent/50 font-mono">{totalSeguidores} seguidor{totalSeguidores !== 1 ? 'es' : ''}</span>
+              <div className="flex items-center gap-3 text-[10px] font-mono">
+                <button onClick={() => setListaAberta('seguidores')} className="text-accent/50 hover:text-accent">{totalSeguidores} seguidor{totalSeguidores !== 1 ? 'es' : ''}</button>
+                <button onClick={() => setListaAberta('seguindo')} className="text-accent/50 hover:text-accent">{totalSeguindo} seguindo</button>
+              </div>
 
               <button
                 onClick={alternarSeguir}
@@ -145,6 +150,10 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
           </>
         )}
       </div>
+
+      {listaAberta && (
+        <ListaConexoesModal perfilId={userId} tipo={listaAberta} onClose={() => setListaAberta(null)} />
+      )}
     </div>
   )
 }
