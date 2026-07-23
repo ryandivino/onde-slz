@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
-import { useAmizades } from '../hooks/useAmizades'
+import { useConexoes } from '../hooks/useConexoes'
 import { X, Send } from 'lucide-react'
 
 type PulsoParaConvite = {
@@ -13,7 +13,7 @@ type PulsoParaConvite = {
 
 export function ConvidarAmigoModal({ pulso, onClose }: { pulso: PulsoParaConvite; onClose: () => void }) {
   const { session, perfil } = useAuth()
-  const { amigos } = useAmizades()
+  const { mutuos } = useConexoes()
 
   const [enviadosPara, setEnviadosPara] = useState<Set<string>>(new Set())
   const [erro, setErro] = useState<string | null>(null)
@@ -49,13 +49,13 @@ export function ConvidarAmigoModal({ pulso, onClose }: { pulso: PulsoParaConvite
 
         {erro && <div className="text-[10px] text-red-400">{erro}</div>}
 
-        {amigos.length === 0 && (
+        {mutuos.length === 0 && (
           <p className="text-[10px] text-accent/30 text-center py-4">
-            Você ainda não tem amigos pra convidar.
+            Você ainda não tem conexões mútuas pra convidar.
           </p>
         )}
 
-        {amigos.map((amigo) => {
+        {mutuos.map((amigo) => {
           const enviado = enviadosPara.has(amigo.id)
           return (
             <div key={amigo.id} className="flex items-center justify-between text-xs font-mono">

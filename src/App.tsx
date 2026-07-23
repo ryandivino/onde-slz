@@ -3,13 +3,13 @@ import { Map } from './components/Map'
 import { supabase } from './supabase'
 import { formatarTempoRelativo } from './utils/tempo'
 import { useAuth } from './hooks/useAuth'
-import { useAmizades } from './hooks/useAmizades'
+import { useConexoes } from './hooks/useConexoes'
 import { useNotificacoes } from './hooks/useNotificacoes'
 import { LoginScreen } from './components/LoginScreen'
 import { EmpresaScreen } from './components/EmpresaScreen'
 import { MenuPanel } from './components/MenuPanel'
 import { PerfilScreen } from './components/PerfilScreen'
-import { AmigosPanel } from './components/AmigosPanel'
+import { ConexoesPanel } from './components/ConexoesPanel'
 import { NotificationsPanel } from './components/NotificationsPanel'
 import { DenunciaModal } from './components/DenunciaModal'
 import { DenunciasManager } from './components/DenunciasManager'
@@ -53,12 +53,12 @@ const ICONE_POR_FILTRO: Record<string, React.ComponentType<{ size?: number }>> =
   RESTAURANTES: UtensilsCrossed,
   CULTURA: Palette,
   OUTROS: MapPin,
-  AMIGOS: Users
+  'CONEXÕES': Users
 }
 
 export default function App() {
   const { usuarioLogado, perfil, session, emRecuperacaoSenha, contaBanida, limparAvisoBanido } = useAuth()
-  const { amigosIds } = useAmizades()
+  const { mutuosIds } = useConexoes()
   const { totalNaoLidas } = useNotificacoes()
   const [isNotificacoesOpen, setIsNotificacoesOpen] = useState(false)
   const [isAnunciosManagerOpen, setIsAnunciosManagerOpen] = useState(false)
@@ -68,7 +68,7 @@ export default function App() {
   const [isPerfilOpen, setIsPerfilOpen] = useState(false)
   const [isEstatisticasOpen, setIsEstatisticasOpen] = useState(false)
   const [isAgoraOpen, setIsAgoraOpen] = useState(false)
-  const [agoraViewerIndice, setAgoraViewerIndice] = useState<number | null>(null)
+  const [agoraGrupoAberto, setAgoraGrupoAberto] = useState<any[] | null>(null)
   const [rotaAlvo, setRotaAlvo] = useState<{ lat: number; lng: number } | null>(null)
   const { eventos, eventosPorLocal } = useEventos()
   const { checkins, resumoPorLocal, meuVotoPorLocal, votar } = useLotacao()
@@ -136,7 +136,7 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const [relatos, setRelatos] = useState<any[]>([])
-  const [filters, setFilters] = useState(['TODOS', 'AMIGOS', ...CATEGORIAS_BASE])
+  const [filters, setFilters] = useState(['TODOS', 'CONEXÕES', ...CATEGORIAS_BASE])
 
   const [foco, setFoco] = useState<{ lat: number; lng: number; ts: number } | null>(null)
 
@@ -268,7 +268,7 @@ export default function App() {
     .filter((r) => r.categoria === 'AGORA' && r.image_url)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
-  useResumoSemanal(amigosIds, relatos, eventos.length)
+  useResumoSemanal(mutuosIds, relatos, eventos.length)
   useRegistrarAbertura()
 
   // Check-in de lotação pesa mais que um post — é presença confirmada, não relato.
@@ -284,12 +284,12 @@ export default function App() {
 
   const relatosFiltrados = relatos.filter((relato) => {
     if (filterActive === 'TODOS') return true
-    if (filterActive === 'AMIGOS') return amigosIds.includes(relato.user_id)
+    if (filterActive === 'CONEXÕES') return mutuosIds.includes(relato.user_id)
     return relato.categoria === filterActive
   })
 
   const lidarComCliqueFiltro = (category: string) => {
-    if (category === 'AMIGOS' && !usuarioLogado) {
+    if (category === 'CONEXÕES' && !usuarioLogado) {
       setIsLoginOpen(true)
       return
     }
@@ -472,7 +472,7 @@ export default function App() {
         </div>
       </header>
 
-      <AgoraStories posts={agoraPosts} onAbrir={(i) => setAgoraViewerIndice(i)} />
+      <AgoraStories posts={agoraPosts} onAbrirGrupo={(postsDoGrupo) => setAgoraGrupoAberto(postsDoGrupo)} />
 
       <div className="absolute inset-0 w-full h-full z-0">
         <Map
@@ -871,7 +871,7 @@ export default function App() {
       )}
 
       {isAmigosOpen && (
-        <AmigosPanel onClose={() => setIsAmigosOpen(false)} />
+        <ConexoesPanel onClose={() => setIsAmigosOpen(false)} />
       )}
 
       {isNotificacoesOpen && (
@@ -946,12 +946,12 @@ export default function App() {
         />
       )}
 
-      {agoraViewerIndice !== null && (
+      {agoraGrupoAberto !== null && (
         <AgoraViewer
-          posts={agoraPosts}
-          indiceInicial={agoraViewerIndice}
-          onClose={() => setAgoraViewerIndice(null)}
-          onIrParaNoMapa={(lat, lng) => { irParaNoMapa(lat, lng); setAgoraViewerIndice(null) }}
+          posts={agoraGrupoAberto}
+          indiceInicial={0}
+          onClose={() => setAgoraGrupoAberto(null)}
+          onIrParaNoMapa={(lat, lng) => { irParaNoMapa(lat, lng); setAgoraGrupoAberto(null) }}
         />
       )}
 
