@@ -592,11 +592,11 @@ export default function App() {
 
           {abaDrawer !== 'eventos' && (
             <div className="px-4 py-2 border-b border-borderRaw/10 flex-shrink-0 relative space-y-2">
-              <div className="relative">
+              <div className="relative flex items-center">
                 {abaDrawer === 'onde_ir' ? (
-                  <Sparkles size={13} className="absolute left-7 top-1/2 -translate-y-1/2 text-accent/40" />
+                  <Sparkles size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-accent/40 pointer-events-none" />
                 ) : (
-                  <Search size={13} className="absolute left-7 top-1/2 -translate-y-1/2 text-accent/30" />
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-accent/30 pointer-events-none" />
                 )}
                 <input
                   type="text"
@@ -604,7 +604,7 @@ export default function App() {
                   onChange={(e) => { setTermoBusca(e.target.value); setVibeDescartada(false) }}
                   placeholder={abaDrawer === 'onde_ir' ? 'Descreva a vibe do rolê...' : 'Buscar atividade...'}
                   maxLength={abaDrawer === 'onde_ir' ? 40 : undefined}
-                  className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-7 pr-2 text-[10px] font-mono"
+                  className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-9 pr-2 text-[10px] font-mono"
                 />
               </div>
 
