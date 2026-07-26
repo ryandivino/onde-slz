@@ -1,15 +1,16 @@
-// Só a LÓGICA de interpretação fica aqui — o conteúdo (as palavras em si)
-// mora em dicionarioVibes.ts, separado de propósito. Não é IA de verdade
-// (não chama nenhuma API) — é uma pontuação por palavra-chave, o suficiente
-// pra dar a sensação de "o app entendeu" sem custo nenhum.
+// Só a LÓGICA de interpretação fica aqui — o conteúdo curado à mão mora em
+// dicionarioVibes.ts. Além dele, essa função também aceita um "dicionário
+// extra" (palavras aprendidas automaticamente com o uso real do app — ver
+// useAprendizadoVibe.ts) — os dois se somam na hora de pontuar.
 
 import { DICIONARIO_VIBES } from './dicionarioVibes'
-import type { Categoria } from './dicionarioVibes'
+import type { Categoria, PalavraComPeso } from './dicionarioVibes'
 
-export type { Categoria }
+export type { Categoria, PalavraComPeso }
 export type ResultadoVibe = { categoria: Categoria; pontuacao: number }
+export type DicionarioExtra = Partial<Record<Exclude<Categoria, 'OUTROS'>, PalavraComPeso[]>>
 
-export function interpretarVibe(texto: string): ResultadoVibe[] {
+export function interpretarVibe(texto: string, dicionarioExtra?: DicionarioExtra): ResultadoVibe[] {
   const textoNormalizado = texto.trim().toLowerCase()
   if (!textoNormalizado) return []
 
@@ -17,7 +18,8 @@ export function interpretarVibe(texto: string): ResultadoVibe[] {
 
   for (const categoria of Object.keys(DICIONARIO_VIBES) as Exclude<Categoria, 'OUTROS'>[]) {
     let pontuacao = 0
-    for (const { palavra, peso } of DICIONARIO_VIBES[categoria]) {
+    const palavras = [...DICIONARIO_VIBES[categoria], ...(dicionarioExtra?.[categoria] || [])]
+    for (const { palavra, peso } of palavras) {
       if (textoNormalizado.includes(palavra)) pontuacao += peso
     }
     if (pontuacao > 0) resultado.push({ categoria, pontuacao })
@@ -26,7 +28,7 @@ export function interpretarVibe(texto: string): ResultadoVibe[] {
   return resultado.sort((a, b) => b.pontuacao - a.pontuacao)
 }
 
-export function categoriaMaisProvavel(texto: string): Categoria | null {
-  const resultado = interpretarVibe(texto)
+export function categoriaMaisProvavel(texto: string, dicionarioExtra?: DicionarioExtra): Categoria | null {
+  const resultado = interpretarVibe(texto, dicionarioExtra)
   return resultado.length > 0 ? resultado[0].categoria : null
 }

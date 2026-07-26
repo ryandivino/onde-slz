@@ -26,6 +26,8 @@ import { InstallPrompt } from './components/InstallPrompt'
 import { PerfilPublicoModal } from './components/PerfilPublicoModal'
 import { CadastroLocalModerador } from './components/CadastroLocalModerador'
 import { categoriaMaisProvavel } from './utils/interpretarVibe'
+import { useAprendizadoVibe } from './hooks/useAprendizadoVibe'
+import { aprenderComPost, interpretarComIA } from './utils/aprenderVibe'
 import type { Categoria } from './utils/interpretarVibe'
 import { EventoModal } from './components/EventoModal'
 import { useEventosGerais } from './hooks/useEventosGerais'
@@ -131,6 +133,9 @@ export default function App() {
   const [abaDrawer, setAbaDrawer] = useState<'atividades' | 'onde_ir' | 'eventos'>('atividades')
   const [termoBusca, setTermoBusca] = useState('')
   const [vibeDescartada, setVibeDescartada] = useState(false)
+  const { dicionarioAprendido } = useAprendizadoVibe()
+  const [vibeIA, setVibeIA] = useState<Categoria | null>(null)
+  const [sugestaoIA, setSugestaoIA] = useState<Categoria | null>(null)
 
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [texto, setTexto] = useState('')
@@ -320,7 +325,44 @@ export default function App() {
   // noite" → BARES) e usa isso pra ORDENAR por relevância — nunca esconde
   // nada, só empurra pra cima o que combina mais. Isso evita a frustração
   // de "não achei nada" quando a frase só bateu parcialmente.
-  const vibeInterpretada = abaDrawer === 'onde_ir' && !vibeDescartada ? categoriaMaisProvavel(termoBusca) : null
+  const vibeInterpretada =
+    abaDrawer === 'onde_ir' && !vibeDescartada
+      ? categoriaMaisProvavel(termoBusca, dicionarioAprendido) || vibeIA
+      : null
+
+  // Só chama o Gemini (gratuito, mas com cota) quando o dicionário curado +
+  // o aprendido não reconheceram NADA — é o último recurso, não a primeira
+  // tentativa. Com um pequeno atraso, pra não disparar a cada letra digitada.
+  useEffect(() => {
+    setVibeIA(null)
+    if (abaDrawer !== 'onde_ir' || vibeDescartada) return
+    if (!termoBusca.trim() || termoBusca.trim().length < 4) return
+    if (categoriaMaisProvavel(termoBusca, dicionarioAprendido)) return
+
+    const temporizador = setTimeout(() => {
+      interpretarComIA(termoBusca).then((categoria) => {
+        if (categoria && categoria !== 'OUTROS') setVibeIA(categoria)
+      })
+    }, 900)
+
+    return () => clearTimeout(temporizador)
+  }, [termoBusca, abaDrawer, vibeDescartada, dicionarioAprendido])
+
+  // Mesmo mecanismo do "Onde Ir", só que pro texto do post — IA só entra
+  // quando o dicionário curado + o aprendido não reconhecem nada.
+  useEffect(() => {
+    setSugestaoIA(null)
+    if (!texto.trim() || texto.trim().length < 6) return
+    if (categoriaMaisProvavel(texto, dicionarioAprendido)) return
+
+    const temporizador = setTimeout(() => {
+      interpretarComIA(texto).then((categoria) => {
+        if (categoria && categoria !== 'OUTROS') setSugestaoIA(categoria)
+      })
+    }, 900)
+
+    return () => clearTimeout(temporizador)
+  }, [texto, dicionarioAprendido])
 
   const listaAtual =
     abaDrawer === 'onde_ir'
@@ -396,6 +438,7 @@ export default function App() {
       console.error("Erro detalhado do Supabase:", error)
       alert("Erro ao enviar: " + (error.message || "Verifique o console."))
     } else {
+      aprenderComPost(categoriaEnvio, texto)
       setMostrarConfirmacaoPublicacao(false)
       setIsFormOpen(false)
       setTexto('')
@@ -592,11 +635,11 @@ export default function App() {
 
           {abaDrawer !== 'eventos' && (
             <div className="px-4 py-2 border-b border-borderRaw/10 flex-shrink-0 relative space-y-2">
-              <div className="relative flex items-center">
+              <div className="relative">
                 {abaDrawer === 'onde_ir' ? (
-                  <Sparkles size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-accent/40 pointer-events-none" />
+                  <Sparkles size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-accent/40" />
                 ) : (
-                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-accent/30 pointer-events-none" />
+                  <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-accent/30" />
                 )}
                 <input
                   type="text"
@@ -604,7 +647,7 @@ export default function App() {
                   onChange={(e) => { setTermoBusca(e.target.value); setVibeDescartada(false) }}
                   placeholder={abaDrawer === 'onde_ir' ? 'Descreva a vibe do rolê...' : 'Buscar atividade...'}
                   maxLength={abaDrawer === 'onde_ir' ? 40 : undefined}
-                  className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-9 pr-2 text-[10px] font-mono"
+                  className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-7 pr-2 text-[10px] font-mono"
                 />
               </div>
 
@@ -877,7 +920,7 @@ export default function App() {
             <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando bem aqui, agora?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
 
             {(() => {
-              const categoriaSugerida = categoriaMaisProvavel(texto)
+              const categoriaSugerida = categoriaMaisProvavel(texto, dicionarioAprendido) || sugestaoIA
               if (!categoriaSugerida || categoriaSugerida === categoriaEnvio) return null
               const IconeSugestao = ICONE_POR_FILTRO[categoriaSugerida]
               return (
