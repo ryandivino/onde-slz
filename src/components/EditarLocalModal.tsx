@@ -3,6 +3,8 @@ import { supabase } from '../supabase'
 import { X } from 'lucide-react'
 import { MapaLocalPicker } from './MapaLocalPicker'
 
+const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
+
 type LocalParaEditar = {
   id: number
   nome_local: string
@@ -10,6 +12,7 @@ type LocalParaEditar = {
   lat: number
   lng: number
   endereco: string | null
+  categoria: string
 }
 
 export function EditarLocalModal({
@@ -24,6 +27,7 @@ export function EditarLocalModal({
   const [nome, setNome] = useState(local.nome_local || '')
   const [descricao, setDescricao] = useState(local.texto || '')
   const [endereco, setEndereco] = useState(local.endereco || '')
+  const [categoria, setCategoria] = useState(local.categoria || CATEGORIAS_BASE[0])
   const [lat, setLat] = useState<number | null>(local.lat)
   const [lng, setLng] = useState<number | null>(local.lng)
   const [erro, setErro] = useState<string | null>(null)
@@ -42,6 +46,7 @@ export function EditarLocalModal({
         nome_local: nome.trim().toUpperCase(),
         texto: descricao.trim(),
         endereco: endereco.trim() || null,
+        categoria,
         lat,
         lng
       })
@@ -64,6 +69,10 @@ export function EditarLocalModal({
         {erro && <div className="text-[10px] text-red-400">{erro}</div>}
 
         <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do Local" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+        <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
+          {CATEGORIAS_BASE.map((c) => (<option key={c} value={c}>{c}</option>))}
+          {!CATEGORIAS_BASE.includes(categoria) && <option value={categoria}>{categoria}</option>}
+        </select>
         <input type="text" value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Endereço" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
         <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs h-20" />
 

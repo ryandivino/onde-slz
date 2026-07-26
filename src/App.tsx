@@ -25,6 +25,8 @@ import { EstatisticasPanel } from './components/EstatisticasPanel'
 import { InstallPrompt } from './components/InstallPrompt'
 import { PerfilPublicoModal } from './components/PerfilPublicoModal'
 import { CadastroLocalModerador } from './components/CadastroLocalModerador'
+import { categoriaMaisProvavel } from './utils/interpretarVibe'
+import type { Categoria } from './utils/interpretarVibe'
 import { EventoModal } from './components/EventoModal'
 import { useEventosGerais } from './hooks/useEventosGerais'
 import { EditarLocalModal } from './components/EditarLocalModal'
@@ -38,7 +40,7 @@ import { LoadingScreen } from './components/LoadingScreen'
 import { PoliticasPopup } from './components/PoliticasModal'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
-import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair } from 'lucide-react'
+import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair, Sparkles } from 'lucide-react'
 import logo from './assets/logo.png'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -47,6 +49,23 @@ import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 
 const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
+
+// Combina busca literal (nome/texto/apelido) + vibe interpretada numa nota
+// só — usado pra ORDENAR os locais no "Onde Ir", nunca pra escondê-los.
+function pontuarRelevancia(relato: any, termoBusca: string, vibeInterpretada: Categoria | null): number {
+  let pontos = 0
+  const termo = termoBusca.trim().toLowerCase()
+
+  if (termo) {
+    if (relato.nome_local?.toLowerCase().includes(termo)) pontos += 10
+    if (relato.texto?.toLowerCase().includes(termo)) pontos += 6
+    if (relato.apelido?.toLowerCase().includes(termo)) pontos += 4
+  }
+
+  if (vibeInterpretada && relato.categoria === vibeInterpretada) pontos += 8
+
+  return pontos
+}
 
 const ICONE_POR_FILTRO: Record<string, React.ComponentType<{ size?: number }>> = {
   BARES: Beer,
@@ -74,7 +93,7 @@ export default function App() {
   const { checkins, resumoPorLocal, meuVotoPorLocal, votar } = useLotacao()
   const [pulsoParaConvidar, setPulsoParaConvidar] = useState<{ id: number; texto: string; lat: number | null; lng: number | null } | null>(null)
   const [localParaEventos, setLocalParaEventos] = useState<{ id: number; nome: string } | null>(null)
-  const [localParaEditar, setLocalParaEditar] = useState<{ id: number; nome_local: string; texto: string; lat: number; lng: number; endereco: string | null } | null>(null)
+  const [localParaEditar, setLocalParaEditar] = useState<{ id: number; nome_local: string; texto: string; lat: number; lng: number; endereco: string | null; categoria: string } | null>(null)
   const [isEventoModalOpen, setIsEventoModalOpen] = useState(false)
   const { eventos: eventosGerais, removerEvento, recarregar: recarregarEventosGerais } = useEventosGerais()
   const [mostrarCalor, setMostrarCalor] = useState(false)
@@ -111,6 +130,7 @@ export default function App() {
   const [filterActive, setFilterActive] = useState('TODOS')
   const [abaDrawer, setAbaDrawer] = useState<'atividades' | 'onde_ir' | 'eventos'>('atividades')
   const [termoBusca, setTermoBusca] = useState('')
+  const [vibeDescartada, setVibeDescartada] = useState(false)
 
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [texto, setTexto] = useState('')
@@ -295,15 +315,25 @@ export default function App() {
 
   const locaisFixos = relatosFiltrados.filter((r) => r.is_fixed)
   const atividadesUsuarios = relatosFiltrados.filter((r) => !r.is_fixed)
-  const listaAtual = (abaDrawer === 'onde_ir' ? locaisFixos : atividadesUsuarios).filter((r) => {
-    if (!termoBusca.trim()) return true
-    const termo = termoBusca.trim().toLowerCase()
-    return (
-      r.nome_local?.toLowerCase().includes(termo) ||
-      r.texto?.toLowerCase().includes(termo) ||
-      r.apelido?.toLowerCase().includes(termo)
-    )
-  })
+
+  // No "Onde Ir", a busca interpreta a "vibe" descrita (ex: "balada na
+  // noite" → BARES) e usa isso pra ORDENAR por relevância — nunca esconde
+  // nada, só empurra pra cima o que combina mais. Isso evita a frustração
+  // de "não achei nada" quando a frase só bateu parcialmente.
+  const vibeInterpretada = abaDrawer === 'onde_ir' && !vibeDescartada ? categoriaMaisProvavel(termoBusca) : null
+
+  const listaAtual =
+    abaDrawer === 'onde_ir'
+      ? [...locaisFixos].sort((a, b) => pontuarRelevancia(b, termoBusca, vibeInterpretada) - pontuarRelevancia(a, termoBusca, vibeInterpretada))
+      : atividadesUsuarios.filter((r) => {
+          if (!termoBusca.trim()) return true
+          const termo = termoBusca.trim().toLowerCase()
+          return (
+            r.nome_local?.toLowerCase().includes(termo) ||
+            r.texto?.toLowerCase().includes(termo) ||
+            r.apelido?.toLowerCase().includes(termo)
+          )
+        })
 
   const deletarRelato = async (id: number) => {
     if (!confirm('Deletar?')) return
@@ -561,15 +591,36 @@ export default function App() {
           </div>
 
           {abaDrawer !== 'eventos' && (
-            <div className="px-4 py-2 border-b border-borderRaw/10 flex-shrink-0 relative">
-              <Search size={13} className="absolute left-7 top-1/2 -translate-y-1/2 text-accent/30" />
-              <input
-                type="text"
-                value={termoBusca}
-                onChange={(e) => setTermoBusca(e.target.value)}
-                placeholder={abaDrawer === 'onde_ir' ? 'Buscar local...' : 'Buscar atividade...'}
-                className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-7 pr-2 text-[10px] font-mono"
-              />
+            <div className="px-4 py-2 border-b border-borderRaw/10 flex-shrink-0 relative space-y-2">
+              <div className="relative">
+                {abaDrawer === 'onde_ir' ? (
+                  <Sparkles size={13} className="absolute left-7 top-1/2 -translate-y-1/2 text-accent/40" />
+                ) : (
+                  <Search size={13} className="absolute left-7 top-1/2 -translate-y-1/2 text-accent/30" />
+                )}
+                <input
+                  type="text"
+                  value={termoBusca}
+                  onChange={(e) => { setTermoBusca(e.target.value); setVibeDescartada(false) }}
+                  placeholder={abaDrawer === 'onde_ir' ? 'Descreva a vibe do rolê...' : 'Buscar atividade...'}
+                  maxLength={abaDrawer === 'onde_ir' ? 40 : undefined}
+                  className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-7 pr-2 text-[10px] font-mono"
+                />
+              </div>
+
+              {vibeInterpretada && (() => {
+                const IconeVibe = ICONE_POR_FILTRO[vibeInterpretada]
+                return (
+                  <button
+                    onClick={() => setVibeDescartada(true)}
+                    className="flex items-center gap-1.5 text-[9px] font-mono text-accent/50 hover:text-accent/70 bg-background/40 rounded-full px-2 py-1 w-fit"
+                  >
+                    <Sparkles size={10} />
+                    Interpretei como: {IconeVibe && <IconeVibe size={10} />} {vibeInterpretada}
+                    <X size={10} className="ml-1" />
+                  </button>
+                )
+              })()}
             </div>
           )}
 
@@ -670,7 +721,7 @@ export default function App() {
 
                 {isAdmin && (
                   <button
-                    onClick={() => setLocalParaEditar({ id: relato.id, nome_local: relato.nome_local, texto: relato.texto, lat: relato.lat, lng: relato.lng, endereco: relato.endereco })}
+                    onClick={() => setLocalParaEditar({ id: relato.id, nome_local: relato.nome_local, texto: relato.texto, lat: relato.lat, lng: relato.lng, endereco: relato.endereco, categoria: relato.categoria })}
                     className="text-[9px] font-mono text-accent/40 hover:text-accent flex items-center gap-1 mt-1"
                   >
                     <Pencil size={11} /> Editar local
@@ -824,6 +875,22 @@ export default function App() {
             )}
 
             <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando bem aqui, agora?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
+
+            {(() => {
+              const categoriaSugerida = categoriaMaisProvavel(texto)
+              if (!categoriaSugerida || categoriaSugerida === categoriaEnvio) return null
+              const IconeSugestao = ICONE_POR_FILTRO[categoriaSugerida]
+              return (
+                <button
+                  type="button"
+                  onClick={() => setCategoriaEnvio(categoriaSugerida)}
+                  className="flex items-center gap-1.5 text-[9px] font-mono text-accent/60 hover:text-accent bg-background/40 rounded-full px-2 py-1 w-fit"
+                >
+                  <Sparkles size={10} />
+                  Parece ser sobre {IconeSugestao && <IconeSugestao size={10} />} {categoriaSugerida} — usar essa categoria?
+                </button>
+              )
+            })()}
 
             <select value={categoriaEnvio} onChange={(e) => setCategoriaEnvio(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
               {CATEGORIAS_BASE.map(c => (<option key={c} value={c}>{c}</option>))}

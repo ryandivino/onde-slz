@@ -3,7 +3,7 @@ import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
 import { CameraCapture } from './CameraCapture'
 import { ConfirmarLocalizacaoModal } from './ConfirmarLocalizacaoModal'
-import { X, MapPin } from 'lucide-react'
+import { X, MapPin, Clock } from 'lucide-react'
 
 export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPublicado: () => void }) {
   const { session, perfil } = useAuth()
@@ -109,7 +109,7 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
     }
   }
 
-  // Etapa 1: câmera (sem opção de galeria)
+  // Etapa 1: câmera
   if (!fotoBlob) {
     return <CameraCapture onFotoCapturada={lidarComFoto} onCancelar={onClose} />
   }
@@ -123,7 +123,14 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
           <button onClick={onClose} className="text-accent/40 hover:text-accent"><X size={16} /></button>
         </div>
 
-        {erro && <div className="text-[10px] text-red-400">{erro}</div>}
+        {erro && erro.includes('limite de 10 publicações') ? (
+          <div className="flex items-center gap-2 text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+            <Clock size={16} className="flex-shrink-0" />
+            <span>Você já publicou 10 AGORA hoje, esse é o limite diário. Volta pra postar mais amanhã!</span>
+          </div>
+        ) : erro && (
+          <div className="text-[10px] text-red-400">{erro}</div>
+        )}
 
         {fotoPreview && <img src={fotoPreview} alt="Prévia" className="w-full rounded-xl border border-borderRaw" />}
 
