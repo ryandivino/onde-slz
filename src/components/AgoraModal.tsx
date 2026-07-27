@@ -3,10 +3,14 @@ import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
 import { CameraCapture } from './CameraCapture'
 import { ConfirmarLocalizacaoModal } from './ConfirmarLocalizacaoModal'
-import { X, MapPin, Clock } from 'lucide-react'
+import { X, MapPin, Clock, Camera, MessageSquare, Globe, Users } from 'lucide-react'
+
+type Visibilidade = 'publico' | 'conexoes'
 
 export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPublicado: () => void }) {
   const { session, perfil } = useAuth()
+
+  const [etapa, setEtapa] = useState<'inicial' | 'camera' | 'compor'>('inicial')
 
   const [fotoBlob, setFotoBlob] = useState<Blob | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
@@ -14,6 +18,7 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
   const [apelidoManual, setApelidoManual] = useState('')
   const [postarAnonimo, setPostarAnonimo] = useState(false)
   const [incluirLocalizacao, setIncluirLocalizacao] = useState(true)
+  const [visibilidade, setVisibilidade] = useState<Visibilidade>('publico')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -24,6 +29,7 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
   const lidarComFoto = (blob: Blob) => {
     setFotoBlob(blob)
     setFotoPreview(URL.createObjectURL(blob))
+    setEtapa('compor')
   }
 
   const obterLocalizacao = (): Promise<{ lat: number; lng: number } | null> => {
@@ -40,7 +46,7 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
     })
   }
 
-  const publicarNoBanco = async (coordenadas: { lat: number; lng: number } | null, imageUrl: string) => {
+  const publicarNoBanco = async (coordenadas: { lat: number; lng: number } | null, imageUrl: string | null) => {
     const { error: erroInsert } = await supabase.from('pulsos').insert([{
       texto: texto.trim(),
       apelido: postarAnonimo ? (apelidoManual.trim() || 'ANÔNIMO') : perfil?.apelido,
@@ -50,23 +56,22 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
       categoria: 'AGORA',
       is_fixed: false,
       image_url: imageUrl,
-      anonimo: postarAnonimo
+      anonimo: postarAnonimo,
+      visibilidade
     }])
     if (erroInsert) throw erroInsert
   }
 
-  // Faz o upload da foto e obtém a localização (se marcada). Se tiver
-  // localização, para aqui e mostra a confirmação visual antes de publicar
-  // de verdade — a pessoa nunca tinha visto onde o pino ia cair antes disso.
   const iniciarPublicacao = async () => {
-    if (!fotoBlob || !session?.user) return
+    if (!fotoBlob && !texto.trim()) { setErro('Escreva algo ou tire uma foto.'); return }
+    if (!session?.user) return
     setEnviando(true)
     setErro(null)
 
     try {
-      let imageUrl = urlFotoEnviada
+      let imageUrl: string | null = urlFotoEnviada
 
-      if (!imageUrl) {
+      if (fotoBlob && !imageUrl) {
         const caminho = `${session.user.id}/${Date.now()}.jpg`
         const { error: erroUpload } = await supabase.storage.from('fotos-agora').upload(caminho, fotoBlob, {
           contentType: 'image/jpeg'
@@ -94,7 +99,7 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
   }
 
   const confirmarEPublicar = async () => {
-    if (!urlFotoEnviada || !coordenadasParaConfirmar) return
+    if (!coordenadasParaConfirmar) return
     setEnviando(true)
     setErro(null)
 
@@ -109,12 +114,37 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
     }
   }
 
-  // Etapa 1: câmera
-  if (!fotoBlob) {
-    return <CameraCapture onFotoCapturada={lidarComFoto} onCancelar={onClose} />
+  if (etapa === 'inicial') {
+    return (
+      <div className="fixed inset-0 bg-background/95 z-[9999] flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-surface border border-borderRaw rounded-2xl p-6 space-y-3 shadow-2xl">
+          <div className="flex justify-between items-center border-b border-borderRaw/40 pb-2">
+            <span className="text-[10px] font-mono tracking-widest text-red-400">PUBLICAR UM AGORA</span>
+            <button onClick={onClose} className="text-accent/40 hover:text-accent"><X size={16} /></button>
+          </div>
+
+          <button
+            onClick={() => setEtapa('camera')}
+            className="w-full flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-widest py-4 rounded-lg bg-accent text-background font-bold"
+          >
+            <Camera size={16} /> Tirar uma foto
+          </button>
+
+          <button
+            onClick={() => setEtapa('compor')}
+            className="w-full flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-widest py-4 rounded-lg border border-borderRaw text-accent/70"
+          >
+            <MessageSquare size={16} /> Só escrever um comentário
+          </button>
+        </div>
+      </div>
+    )
   }
 
-  // Etapa 2: legenda + localização opcional + publicar
+  if (etapa === 'camera') {
+    return <CameraCapture onFotoCapturada={lidarComFoto} onCancelar={() => setEtapa('inicial')} />
+  }
+
   return (
     <div className="fixed inset-0 bg-background/95 z-[9999] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-surface border border-borderRaw rounded-2xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -126,7 +156,7 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
         {erro && erro.includes('limite de 10 publicações') ? (
           <div className="flex items-center gap-2 text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
             <Clock size={16} className="flex-shrink-0" />
-            <span>Você já publicou 10 AGORA hoje, esse é o limite diário. Volta pra postar mais amanhã!</span>
+            <span>Você já publicou 10 AGORA hoje — esse é o limite diário. Volta pra postar mais amanhã!</span>
           </div>
         ) : erro && (
           <div className="text-[10px] text-red-400">{erro}</div>
@@ -134,12 +164,41 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
 
         {fotoPreview && <img src={fotoPreview} alt="Prévia" className="w-full rounded-xl border border-borderRaw" />}
 
+        {!fotoBlob && (
+          <button
+            onClick={() => setEtapa('camera')}
+            className="flex items-center gap-1.5 text-[10px] font-mono text-accent/50 hover:text-accent underline w-fit"
+          >
+            <Camera size={12} /> Adicionar foto também
+          </button>
+        )}
+
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder="Uma legenda pra esse momento (opcional)"
+          placeholder={fotoBlob ? 'Uma legenda pra esse momento (opcional)' : 'O que está rolando?'}
           className="w-full h-16 bg-background border border-borderRaw rounded-lg p-2 text-xs"
         />
+
+        <div className="space-y-1.5">
+          <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Quem pode ver</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setVisibilidade('publico')}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-widest py-2 rounded-lg border ${visibilidade === 'publico' ? 'bg-accent text-background border-accent' : 'border-borderRaw text-accent/60'}`}
+            >
+              <Globe size={12} /> Público
+            </button>
+            <button
+              type="button"
+              onClick={() => setVisibilidade('conexoes')}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-widest py-2 rounded-lg border ${visibilidade === 'conexoes' ? 'bg-accent text-background border-accent' : 'border-borderRaw text-accent/60'}`}
+            >
+              <Users size={12} /> Só conexões
+            </button>
+          </div>
+        </div>
 
         <label className="flex items-center gap-2 text-[10px] font-mono text-accent/70">
           <input type="checkbox" checked={postarAnonimo} onChange={(e) => setPostarAnonimo(e.target.checked)} />

@@ -27,12 +27,12 @@ import { PerfilPublicoModal } from './components/PerfilPublicoModal'
 import { CadastroLocalModerador } from './components/CadastroLocalModerador'
 import { categoriaMaisProvavel } from './utils/interpretarVibe'
 import { useAprendizadoVibe } from './hooks/useAprendizadoVibe'
-import { aprenderComPost, interpretarComIA } from './utils/aprenderVibe'
+import { interpretarComIA } from './utils/aprenderVibe'
+import { InteracoesComentario } from './components/InteracoesComentarios'
 import type { Categoria } from './utils/interpretarVibe'
 import { EventoModal } from './components/EventoModal'
 import { useEventosGerais } from './hooks/useEventosGerais'
 import { EditarLocalModal } from './components/EditarLocalModal'
-import { ConfirmarLocalizacaoModal } from './components/ConfirmarLocalizacaoModal'
 import { useLotacao } from './hooks/useLotacao'
 import { EventosManager } from './components/EventosManager'
 import { AnunciosManager } from './components/AnunciosManager'
@@ -74,7 +74,7 @@ const ICONE_POR_FILTRO: Record<string, React.ComponentType<{ size?: number }>> =
   RESTAURANTES: UtensilsCrossed,
   CULTURA: Palette,
   OUTROS: MapPin,
-  'CONEXÕES': Users
+  AGORA: Camera
 }
 
 export default function App() {
@@ -130,23 +130,17 @@ export default function App() {
   const [isAmigosOpen, setIsAmigosOpen] = useState(false)
 
   const [filterActive, setFilterActive] = useState('TODOS')
-  const [abaDrawer, setAbaDrawer] = useState<'atividades' | 'onde_ir' | 'eventos'>('atividades')
+  const [abaDrawer, setAbaDrawer] = useState<'feed' | 'onde_ir' | 'eventos'>('feed')
   const [termoBusca, setTermoBusca] = useState('')
   const [vibeDescartada, setVibeDescartada] = useState(false)
   const { dicionarioAprendido } = useAprendizadoVibe()
   const [vibeIA, setVibeIA] = useState<Categoria | null>(null)
-  const [sugestaoIA, setSugestaoIA] = useState<Categoria | null>(null)
 
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [texto, setTexto] = useState('')
   const [apelidoManual, setApelidoManual] = useState('') // usado só quando postando anônimo
   const [postarAnonimo, setPostarAnonimo] = useState(false)
-  const [categoriaEnvio, setCategoriaEnvio] = useState(CATEGORIAS_BASE[0])
   const [carregando, setCarregando] = useState(false)
-
-  const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number } | null>(null)
-  const [mostrarConfirmacaoPublicacao, setMostrarConfirmacaoPublicacao] = useState(false)
-  const [erroGps, setErroGps] = useState<string | null>(null)
 
   // Modo moderador: só existe de fato se perfil.is_admin === true (ver MenuPanel)
   const [modoModerador, setModoModerador] = useState(false)
@@ -158,7 +152,7 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const [relatos, setRelatos] = useState<any[]>([])
-  const [filters, setFilters] = useState(['TODOS', 'CONEXÕES', ...CATEGORIAS_BASE])
+  const [filters, setFilters] = useState(['TODOS', 'AGORA', ...CATEGORIAS_BASE])
 
   const [foco, setFoco] = useState<{ lat: number; lng: number; ts: number } | null>(null)
 
@@ -269,18 +263,6 @@ export default function App() {
     return () => clearInterval(intervalo)
   }, [])
 
-  useEffect(() => {
-    if (!isFormOpen) return
-    setErroGps(null)
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoordenadas({ lat: position.coords.latitude, lng: position.coords.longitude })
-      },
-      () => setErroGps('Não conseguimos acessar seu GPS.'),
-      { enableHighAccuracy: true }
-    )
-  }, [isFormOpen])
-
   // Sem admin logado, "modo moderador" nunca fica ativo por acidente
   useEffect(() => {
     if (!perfil?.is_admin) setModoModerador(false)
@@ -306,15 +288,10 @@ export default function App() {
 
   const relatosFiltrados = relatos.filter((relato) => {
     if (filterActive === 'TODOS') return true
-    if (filterActive === 'CONEXÕES') return mutuosIds.includes(relato.user_id)
     return relato.categoria === filterActive
   })
 
   const lidarComCliqueFiltro = (category: string) => {
-    if (category === 'CONEXÕES' && !usuarioLogado) {
-      setIsLoginOpen(true)
-      return
-    }
     setFilterActive(category)
   }
 
@@ -348,22 +325,6 @@ export default function App() {
     return () => clearTimeout(temporizador)
   }, [termoBusca, abaDrawer, vibeDescartada, dicionarioAprendido])
 
-  // Mesmo mecanismo do "Onde Ir", só que pro texto do post — IA só entra
-  // quando o dicionário curado + o aprendido não reconhecem nada.
-  useEffect(() => {
-    setSugestaoIA(null)
-    if (!texto.trim() || texto.trim().length < 6) return
-    if (categoriaMaisProvavel(texto, dicionarioAprendido)) return
-
-    const temporizador = setTimeout(() => {
-      interpretarComIA(texto).then((categoria) => {
-        if (categoria && categoria !== 'OUTROS') setSugestaoIA(categoria)
-      })
-    }, 900)
-
-    return () => clearTimeout(temporizador)
-  }, [texto, dicionarioAprendido])
-
   const listaAtual =
     abaDrawer === 'onde_ir'
       ? [...locaisFixos].sort((a, b) => pontuarRelevancia(b, termoBusca, vibeInterpretada) - pontuarRelevancia(a, termoBusca, vibeInterpretada))
@@ -390,7 +351,6 @@ export default function App() {
 
   const abrirFormularioNormal = () => {
     if (!usuarioLogado) { setIsLoginOpen(true); return }
-    setCategoriaEnvio(CATEGORIAS_BASE[0])
     setIsFormOpen(true)
   }
 
@@ -399,37 +359,26 @@ export default function App() {
     setIsAgoraOpen(true)
   }
 
-  const lidarComEnvio = (e: React.FormEvent) => {
+  // "ONDE É HOJE?" virou um comentário puro — sem localização, sem
+  // categoria, nunca aparece no mapa. É só interação entre usuários,
+  // visível apenas no Feed. Categoria fixa (COMENTARIO) só pra identificar
+  // o tipo do post no banco, não aparece em nenhum filtro.
+  const lidarComEnvio = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!texto.trim() || !coordenadas) {
-      alert("Aguarde a localização ou verifique o texto.")
-      return
-    }
-
-    // Antes de publicar de verdade, mostra onde o pino vai cair — a
-    // localização é capturada silenciosamente pelo GPS, então a pessoa
-    // nunca tinha visto isso antes de confirmar.
-    setMostrarConfirmacaoPublicacao(true)
-  }
-
-  const confirmarEPublicar = async () => {
-    if (!texto.trim() || !coordenadas) return
+    if (!texto.trim()) return
 
     setCarregando(true)
 
-    // Login já é obrigatório pra publicar, então o user_id é sempre gravado
-    // (rastreabilidade/segurança) — o toggle "anônimo" só controla o que é
-    // exibido publicamente (apelido do perfil ou um apelido digitado na hora).
     const payload = {
       texto: texto,
       apelido: postarAnonimo ? (apelidoManual.trim() || 'ANÔNIMO') : perfil!.apelido,
       user_id: session!.user.id,
-      lat: coordenadas.lat,
-      lng: coordenadas.lng,
-      categoria: categoriaEnvio,
+      lat: null,
+      lng: null,
+      categoria: 'COMENTARIO',
       is_fixed: false,
-      anonimo: postarAnonimo
+      anonimo: postarAnonimo,
+      visibilidade: 'publico'
     }
 
     const { error } = await supabase.from('pulsos').insert([payload])
@@ -438,8 +387,6 @@ export default function App() {
       console.error("Erro detalhado do Supabase:", error)
       alert("Erro ao enviar: " + (error.message || "Verifique o console."))
     } else {
-      aprenderComPost(categoriaEnvio, texto)
-      setMostrarConfirmacaoPublicacao(false)
       setIsFormOpen(false)
       setTexto('')
       setApelidoManual('')
@@ -607,17 +554,17 @@ export default function App() {
             onTouchStart={(e) => iniciarArrastoTouch(e.touches[0].clientY)}
           >
             <span className="text-[9px] font-mono tracking-widest text-accent/50 uppercase font-bold">
-              {isAdmin ? 'MODO MODERADOR' : `${listaAtual.length} ${abaDrawer === 'onde_ir' ? 'LOCAIS' : 'ATIVIDADES'}`}
+              {isAdmin ? 'MODO MODERADOR' : 'ONDE'}
             </span>
             <div className="w-8 h-1 bg-accent/20 rounded-full" />
           </div>
 
           <div className="w-full flex border-b border-borderRaw/10 flex-shrink-0">
             <button
-              onClick={() => setAbaDrawer('atividades')}
-              className={`flex-1 text-[10px] font-mono uppercase tracking-widest py-2.5 ${abaDrawer === 'atividades' ? 'bg-accent text-background' : 'text-accent/50'}`}
+              onClick={() => setAbaDrawer('feed')}
+              className={`flex-1 text-[10px] font-mono uppercase tracking-widest py-2.5 ${abaDrawer === 'feed' ? 'bg-accent text-background' : 'text-accent/50'}`}
             >
-              Atividades
+              Feed
             </button>
             <button
               onClick={() => setAbaDrawer('onde_ir')}
@@ -645,7 +592,7 @@ export default function App() {
                   type="text"
                   value={termoBusca}
                   onChange={(e) => { setTermoBusca(e.target.value); setVibeDescartada(false) }}
-                  placeholder={abaDrawer === 'onde_ir' ? 'Descreva a vibe do rolê...' : 'Buscar atividade...'}
+                  placeholder={abaDrawer === 'onde_ir' ? 'Descreva a vibe do rolê...' : 'Buscar no feed...'}
                   maxLength={abaDrawer === 'onde_ir' ? 40 : undefined}
                   className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-7 pr-2 text-[10px] font-mono"
                 />
@@ -672,7 +619,7 @@ export default function App() {
               <p className="text-[10px] text-accent/30 text-center pt-4">
                 {termoBusca.trim()
                   ? 'Nenhum resultado encontrado.'
-                  : abaDrawer === 'onde_ir' ? 'Nenhum local fixado ainda.' : 'Nenhuma atividade recente.'}
+                  : abaDrawer === 'onde_ir' ? 'Nenhum local fixado ainda.' : 'Nada no feed ainda.'}
               </p>
             )}
 
@@ -779,7 +726,7 @@ export default function App() {
               </div>
             ))}
 
-            {abaDrawer === 'atividades' && listaAtual.map((relato) => (
+            {abaDrawer === 'feed' && listaAtual.map((relato) => (
               <div key={relato.id} className="border-b border-borderRaw/10 pb-4">
                 <div className="flex items-start justify-between gap-2">
                   {!relato.anonimo && relato.user_id ? (
@@ -822,6 +769,7 @@ export default function App() {
                 )}
                 <p className="text-xs text-accent/80">"{relato.texto}"</p>
                 <span className="text-[9px] text-accent/40 italic">{formatarTempoRelativo(relato.created_at)}</span>
+                {relato.categoria === 'COMENTARIO' && <InteracoesComentario pulsoId={relato.id} />}
                 {(isAdmin || perfil?.id === relato.user_id) && (
                   <button onClick={() => deletarRelato(relato.id)} className="text-accent/40 hover:text-red-500 ml-2">
                     <Trash2 size={12} />
@@ -906,7 +854,6 @@ export default function App() {
               <span className="text-[10px] font-mono tracking-widest text-red-400">E, AÍ! ONDE É HOJE?</span>
               <button type="button" onClick={() => setIsFormOpen(false)} className="text-accent/40 hover:text-accent"><X size={16} /></button>
             </div>
-            {erroGps && <div className="text-[9px] text-red-400">{erroGps}</div>}
 
             <label className="flex items-center gap-2 text-[10px] font-mono text-accent/70">
               <input type="checkbox" checked={postarAnonimo} onChange={(e) => setPostarAnonimo(e.target.checked)} />
@@ -917,27 +864,7 @@ export default function App() {
               <input type="text" value={apelidoManual} onChange={(e) => setApelidoManual(e.target.value)} placeholder="Apelido para esse post (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             )}
 
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando bem aqui, agora?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
-
-            {(() => {
-              const categoriaSugerida = categoriaMaisProvavel(texto, dicionarioAprendido) || sugestaoIA
-              if (!categoriaSugerida || categoriaSugerida === categoriaEnvio) return null
-              const IconeSugestao = ICONE_POR_FILTRO[categoriaSugerida]
-              return (
-                <button
-                  type="button"
-                  onClick={() => setCategoriaEnvio(categoriaSugerida)}
-                  className="flex items-center gap-1.5 text-[9px] font-mono text-accent/60 hover:text-accent bg-background/40 rounded-full px-2 py-1 w-fit"
-                >
-                  <Sparkles size={10} />
-                  Parece ser sobre {IconeSugestao && <IconeSugestao size={10} />} {categoriaSugerida} — usar essa categoria?
-                </button>
-              )
-            })()}
-
-            <select value={categoriaEnvio} onChange={(e) => setCategoriaEnvio(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
-              {CATEGORIAS_BASE.map(c => (<option key={c} value={c}>{c}</option>))}
-            </select>
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está acontecendo?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
 
             <button type="submit" disabled={carregando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg">
               {carregando ? 'ENVIANDO...' : 'ENVIAR'}
@@ -1093,18 +1020,6 @@ export default function App() {
           local={localParaEditar}
           onClose={() => setLocalParaEditar(null)}
           onSalvo={() => { setLocalParaEditar(null); buscarRelatos() }}
-        />
-      )}
-
-      {mostrarConfirmacaoPublicacao && coordenadas && (
-        <ConfirmarLocalizacaoModal
-          lat={coordenadas.lat}
-          lng={coordenadas.lng}
-          onChange={(lat, lng) => setCoordenadas({ lat, lng })}
-          textoResumo={texto}
-          onConfirmar={confirmarEPublicar}
-          onVoltar={() => setMostrarConfirmacaoPublicacao(false)}
-          publicando={carregando}
         />
       )}
     </div>
