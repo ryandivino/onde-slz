@@ -42,7 +42,7 @@ import { LoadingScreen } from './components/LoadingScreen'
 import { PoliticasPopup } from './components/PoliticasModal'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
-import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair, Sparkles } from 'lucide-react'
+import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair, Sparkles, Zap } from 'lucide-react'
 import logo from './assets/logo.png'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -74,7 +74,7 @@ const ICONE_POR_FILTRO: Record<string, React.ComponentType<{ size?: number }>> =
   RESTAURANTES: UtensilsCrossed,
   CULTURA: Palette,
   OUTROS: MapPin,
-  AGORA: Camera
+  AGORA: Zap
 }
 
 export default function App() {
@@ -528,7 +528,7 @@ export default function App() {
             style={{ backgroundImage: 'linear-gradient(to bottom right, #ff14e1, #9cff00)' }}
             className="pointer-events-auto rounded-xl text-white font-mono text-xs font-bold px-6 py-3 shadow-xl active:scale-95 flex items-center gap-1.5"
           >
-            <Camera size={14} strokeWidth={2.5} />
+            <Zap size={14} strokeWidth={2.5} />
             AGORA
           </button>
 
@@ -589,7 +589,7 @@ export default function App() {
                   type="text"
                   value={termoBusca}
                   onChange={(e) => { setTermoBusca(e.target.value); setVibeDescartada(false) }}
-                  placeholder={abaDrawer === 'onde_ir' ? 'Descreva a vibe do rolê...' : 'Buscar...'}
+                  placeholder={abaDrawer === 'onde_ir' ? 'Descreva a vibe do rolê...' : 'Buscar por texto ou @...'}
                   maxLength={abaDrawer === 'onde_ir' ? 40 : undefined}
                   className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-7 pr-2 text-[10px] font-mono"
                 />
@@ -728,13 +728,25 @@ export default function App() {
                 <div className="flex items-start justify-between gap-2">
                   {!relato.anonimo && relato.user_id ? (
                     <h2
-                      className="text-xs font-mono cursor-pointer hover:underline"
+                      className="text-xs font-mono cursor-pointer hover:underline flex items-center gap-1.5"
                       onClick={() => setPerfilPublicoAlvo(relato.user_id)}
                     >
+                      {relato.categoria === 'AGORA' && (
+                        <span className="flex items-center gap-0.5 text-[8px] text-orange-500 border border-orange-500/40 rounded px-1">
+                          <Zap size={9} /> AGORA
+                        </span>
+                      )}
                       {relato.apelido || '@ANÔNIMO'}
                     </h2>
                   ) : (
-                    <h2 className="text-xs font-mono">{relato.apelido || '@ANÔNIMO'}</h2>
+                    <h2 className="text-xs font-mono flex items-center gap-1.5">
+                      {relato.categoria === 'AGORA' && (
+                        <span className="flex items-center gap-0.5 text-[8px] text-orange-500 border border-orange-500/40 rounded px-1">
+                          <Zap size={9} /> AGORA
+                        </span>
+                      )}
+                      {relato.apelido || '@ANÔNIMO'}
+                    </h2>
                   )}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button onClick={() => setPulsoParaDenunciar(relato.id)} className="text-accent/40 hover:text-red-400">
@@ -766,7 +778,7 @@ export default function App() {
                 )}
                 <p className="text-xs text-accent/80">"{relato.texto}"</p>
                 <span className="text-[9px] text-accent/40 italic">{formatarTempoRelativo(relato.created_at)}</span>
-                {relato.categoria === 'COMENTARIO' && <InteracoesComentario pulsoId={relato.id} />}
+                {(relato.categoria === 'COMENTARIO' || relato.categoria === 'AGORA') && <InteracoesComentario pulsoId={relato.id} />}
                 {(isAdmin || perfil?.id === relato.user_id) && (
                   <button onClick={() => deletarRelato(relato.id)} className="text-accent/40 hover:text-red-500 ml-2">
                     <Trash2 size={12} />
@@ -852,7 +864,7 @@ export default function App() {
               <button type="button" onClick={() => setIsFormOpen(false)} className="text-accent/40 hover:text-accent"><X size={16} /></button>
             </div>
 
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está acontecendo?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando bem aqui, agora?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
 
             <button type="submit" disabled={carregando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg">
               {carregando ? 'ENVIANDO...' : 'ENVIAR'}

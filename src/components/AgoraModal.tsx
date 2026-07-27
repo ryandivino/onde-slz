@@ -122,14 +122,14 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
             onClick={() => setEtapa('camera')}
             className="w-full flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-widest py-4 rounded-lg bg-accent text-background font-bold"
           >
-            <Camera size={16} /> Tirar uma foto
+            <Camera size={16} /> Publicar uma foto
           </button>
 
           <button
             onClick={() => setEtapa('compor')}
             className="w-full flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-widest py-4 rounded-lg border border-borderRaw text-accent/70"
           >
-            <MessageSquare size={16} /> Só escrever um comentário
+            <MessageSquare size={16} /> Só um comentário
           </button>
         </div>
       </div>

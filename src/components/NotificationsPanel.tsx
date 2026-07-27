@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { formatarTempoRelativo } from '../utils/tempo'
-import { Bell, MapPin, Megaphone, Calendar, UserPlus, Sparkles, UserCheck, X } from 'lucide-react'
+import { Bell, MapPin, Megaphone, Calendar, UserPlus, Sparkles, UserCheck, X, Heart, MessageCircle } from 'lucide-react'
 import type { Notificacao } from '../hooks/useNotificacoes'
 import { PerfilPublicoModal } from './PerfilPublicoModal'
 
@@ -10,6 +10,8 @@ function IconePorTipo({ tipo }: { tipo: Notificacao['tipo'] }) {
   if (tipo === 'convite_role') return <UserPlus size={14} className="text-accent/60" />
   if (tipo === 'resumo_semanal') return <Sparkles size={14} className="text-accent/60" />
   if (tipo === 'seguidor') return <UserCheck size={14} className="text-accent/60" />
+  if (tipo === 'curtida') return <Heart size={14} className="text-accent/60" />
+  if (tipo === 'resposta') return <MessageCircle size={14} className="text-accent/60" />
   return null
 }
 

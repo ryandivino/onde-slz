@@ -6,7 +6,7 @@ import 'leaflet.heat'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-import { Beer, UtensilsCrossed, Palette, MapPin, Calendar, Navigation, Flag, Send } from 'lucide-react'
+import { Beer, UtensilsCrossed, Palette, MapPin, Calendar, Navigation, Flag, Send, Zap } from 'lucide-react'
 import { formatarTempoRelativo } from '../utils/tempo'
 
 type Foco = { lat: number; lng: number; ts: number } | null
@@ -352,6 +352,7 @@ export function Map({
       if (relato.lat === null || relato.lng === null) return
 
       const isAgoraComFoto = relato.categoria === 'AGORA' && relato.image_url
+      const isAgoraSemFoto = relato.categoria === 'AGORA' && !relato.image_url
 
       let pinIcon: L.DivIcon
 
@@ -371,6 +372,24 @@ export function Map({
           `,
           iconSize: [34, 34],
           iconAnchor: [17, 17]
+        })
+      } else if (isAgoraSemFoto) {
+        // AGORA sem foto (só texto) — mantém a identidade visual do AGORA
+        // (cor/contorno laranja), em vez de cair no círculo genérico de rolê.
+        pinIcon = L.divIcon({
+          className: 'agora-pin',
+          html: `
+            <div style="
+              width: 30px; height: 30px;
+              border-radius: 50%;
+              background: #0a0a0a;
+              border: 2px solid #f97316;
+              box-shadow: 0 0 10px rgba(249,115,22,0.7);
+              display: flex; align-items: center; justify-content: center;
+            ">${svgComoTexto(Zap, '#f97316')}</div>
+          `,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
         })
       } else if (relato.is_fixed) {
         pinIcon = criarIconeLocalFixo(relato.nome_local || 'LOCAL', relato.categoria)
