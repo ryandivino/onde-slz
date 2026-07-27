@@ -864,7 +864,7 @@ export default function App() {
               <button type="button" onClick={() => setIsFormOpen(false)} className="text-accent/40 hover:text-accent"><X size={16} /></button>
             </div>
 
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando bem aqui, agora?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está acontecendo?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
 
             <button type="submit" disabled={carregando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg">
               {carregando ? 'ENVIANDO...' : 'ENVIAR'}
