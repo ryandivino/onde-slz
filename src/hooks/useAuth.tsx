@@ -13,6 +13,7 @@ export type Perfil = {
   created_at: string
   banido: boolean
   aceitou_politicas: boolean
+  onboarding_concluido: boolean
 }
 
 const MENSAGEM_APELIDO_EM_USO = 'Esse @ já está em uso. Escolha outro.'
@@ -291,6 +292,13 @@ function useAuthState() {
     return { error }
   }
 
+  const concluirOnboarding = async () => {
+    if (!session?.user) return { error: new Error('Não autenticado.') }
+    const { error } = await supabase.from('profiles').update({ onboarding_concluido: true }).eq('id', session.user.id)
+    if (!error) await buscarPerfil(session.user.id)
+    return { error }
+  }
+
   return {
     session,
     perfil,
@@ -309,7 +317,8 @@ function useAuthState() {
     enviarLinkRecuperacao,
     definirNovaSenha,
     definirAdmin,
-    definirBanido
+    definirBanido,
+    concluirOnboarding
   }
 }
 

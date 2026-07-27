@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useEmpresa } from '../hooks/useEmpresa'
 import { useSeguidores } from '../hooks/useSeguidores'
 import { ListaConexoesModal } from './ListaConexoesModal'
+import { FeedPerfil } from './FeedPerfil'
 import { X, Camera, Pencil, Check } from 'lucide-react'
 import { AtributosEstabelecimento } from './AtributosEstabelecimento'
 import type { Atributos } from './AtributosEstabelecimento'
@@ -193,6 +194,8 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
             </button>
           </div>
         )}
+
+        {perfil && <FeedPerfil perfilId={perfil.id} />}
       </div>
 
       {listaAberta && perfil && (

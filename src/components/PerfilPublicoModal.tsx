@@ -4,6 +4,7 @@ import { X, Store, Phone, AtSign, Globe, Clock, MapPin, UserPlus, UserCheck } fr
 import { ATRIBUTOS_DISPONIVEIS } from './AtributosEstabelecimento'
 import { useSeguidores } from '../hooks/useSeguidores'
 import { ListaConexoesModal } from './ListaConexoesModal'
+import { FeedPerfil } from './FeedPerfil'
 
 type PerfilPublico = {
   apelido: string
@@ -149,6 +150,8 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
             )}
           </>
         )}
+
+        <FeedPerfil perfilId={userId} />
       </div>
 
       {listaAberta && (

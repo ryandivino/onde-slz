@@ -40,6 +40,7 @@ import { GerenciarUsuariosManager } from './components/GerenciarUsuariosManager'
 import { EventosGeraisManager } from './components/EventosGeraisManager'
 import { LoadingScreen } from './components/LoadingScreen'
 import { PoliticasPopup } from './components/PoliticasModal'
+import { OnboardingPerfil } from './components/OnboardingPerfil'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
 import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair, Sparkles, Zap } from 'lucide-react'
@@ -864,7 +865,7 @@ export default function App() {
               <button type="button" onClick={() => setIsFormOpen(false)} className="text-accent/40 hover:text-accent"><X size={16} /></button>
             </div>
 
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está acontecendo?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando bem aqui, agora?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
 
             <button type="submit" disabled={carregando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg">
               {carregando ? 'ENVIANDO...' : 'ENVIAR'}
@@ -943,6 +944,10 @@ export default function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {usuarioLogado && perfil && !perfil.onboarding_concluido && !contaBanida && (
+        <OnboardingPerfil />
       )}
 
       {isAnunciosManagerOpen && (
