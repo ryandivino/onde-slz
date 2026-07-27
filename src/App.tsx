@@ -28,7 +28,7 @@ import { CadastroLocalModerador } from './components/CadastroLocalModerador'
 import { categoriaMaisProvavel } from './utils/interpretarVibe'
 import { useAprendizadoVibe } from './hooks/useAprendizadoVibe'
 import { interpretarComIA } from './utils/aprenderVibe'
-import { InteracoesComentario } from './components/InteracoesComentarios'
+import { InteracoesComentario } from './components/InteracoesComentario'
 import type { Categoria } from './utils/interpretarVibe'
 import { EventoModal } from './components/EventoModal'
 import { useEventosGerais } from './hooks/useEventosGerais'
@@ -138,8 +138,6 @@ export default function App() {
 
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [texto, setTexto] = useState('')
-  const [apelidoManual, setApelidoManual] = useState('') // usado só quando postando anônimo
-  const [postarAnonimo, setPostarAnonimo] = useState(false)
   const [carregando, setCarregando] = useState(false)
 
   // Modo moderador: só existe de fato se perfil.is_admin === true (ver MenuPanel)
@@ -222,7 +220,7 @@ export default function App() {
       const { data, error } = await supabase
         .from('pulsos')
         .select('*')
-        .or(`is_fixed.eq.true,created_at.gte.${vinteQuatroHorasAtras}`)
+        .or(`is_fixed.eq.true,categoria.eq.COMENTARIO,created_at.gte.${vinteQuatroHorasAtras}`)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -371,13 +369,13 @@ export default function App() {
 
     const payload = {
       texto: texto,
-      apelido: postarAnonimo ? (apelidoManual.trim() || 'ANÔNIMO') : perfil!.apelido,
+      apelido: perfil!.apelido,
       user_id: session!.user.id,
       lat: null,
       lng: null,
       categoria: 'COMENTARIO',
       is_fixed: false,
-      anonimo: postarAnonimo,
+      anonimo: false,
       visibilidade: 'publico'
     }
 
@@ -389,7 +387,6 @@ export default function App() {
     } else {
       setIsFormOpen(false)
       setTexto('')
-      setApelidoManual('')
       buscarRelatos()
     }
 
@@ -564,7 +561,7 @@ export default function App() {
               onClick={() => setAbaDrawer('feed')}
               className={`flex-1 text-[10px] font-mono uppercase tracking-widest py-2.5 ${abaDrawer === 'feed' ? 'bg-accent text-background' : 'text-accent/50'}`}
             >
-              Feed
+              Para Você
             </button>
             <button
               onClick={() => setAbaDrawer('onde_ir')}
@@ -592,7 +589,7 @@ export default function App() {
                   type="text"
                   value={termoBusca}
                   onChange={(e) => { setTermoBusca(e.target.value); setVibeDescartada(false) }}
-                  placeholder={abaDrawer === 'onde_ir' ? 'Descreva a vibe do rolê...' : 'Buscar no feed...'}
+                  placeholder={abaDrawer === 'onde_ir' ? 'Descreva a vibe do rolê...' : 'Buscar...'}
                   maxLength={abaDrawer === 'onde_ir' ? 40 : undefined}
                   className="w-full bg-background/60 border border-borderRaw rounded-lg py-1.5 pl-7 pr-2 text-[10px] font-mono"
                 />
@@ -743,7 +740,7 @@ export default function App() {
                     <button onClick={() => setPulsoParaDenunciar(relato.id)} className="text-accent/40 hover:text-red-400">
                       <Flag size={13} />
                     </button>
-                    {relato.lat !== null && relato.lng !== null && (
+                    {relato.categoria === 'AGORA' && relato.lat !== null && relato.lng !== null && (
                       <>
                         <button onClick={() => irParaNoMapa(relato.lat, relato.lng)} className="text-accent/50 hover:text-accent">
                           <Crosshair size={14} />
@@ -751,16 +748,16 @@ export default function App() {
                         <button onClick={() => setRotaAlvo({ lat: relato.lat, lng: relato.lng })} className="text-accent/50 hover:text-accent">
                           <Navigation size={13} />
                         </button>
+                        {usuarioLogado && (
+                          <button
+                            onClick={() => setPulsoParaConvidar({ id: relato.id, texto: relato.texto, lat: relato.lat, lng: relato.lng })}
+                            className="text-accent/50 hover:text-accent"
+                            title="Convidar amigo pra esse rolê"
+                          >
+                            <Send size={13} />
+                          </button>
+                        )}
                       </>
-                    )}
-                    {usuarioLogado && (
-                      <button
-                        onClick={() => setPulsoParaConvidar({ id: relato.id, texto: relato.texto, lat: relato.lat, lng: relato.lng })}
-                        className="text-accent/50 hover:text-accent"
-                        title="Convidar amigo pra esse rolê"
-                      >
-                        <Send size={13} />
-                      </button>
                     )}
                   </div>
                 </div>
@@ -854,15 +851,6 @@ export default function App() {
               <span className="text-[10px] font-mono tracking-widest text-red-400">E, AÍ! ONDE É HOJE?</span>
               <button type="button" onClick={() => setIsFormOpen(false)} className="text-accent/40 hover:text-accent"><X size={16} /></button>
             </div>
-
-            <label className="flex items-center gap-2 text-[10px] font-mono text-accent/70">
-              <input type="checkbox" checked={postarAnonimo} onChange={(e) => setPostarAnonimo(e.target.checked)} />
-              Postar anônimo (em vez de @{perfil?.apelido})
-            </label>
-
-            {postarAnonimo && (
-              <input type="text" value={apelidoManual} onChange={(e) => setApelidoManual(e.target.value)} placeholder="Apelido para esse post (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
-            )}
 
             <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está acontecendo?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
 

@@ -3,9 +3,7 @@ import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
 import { CameraCapture } from './CameraCapture'
 import { ConfirmarLocalizacaoModal } from './ConfirmarLocalizacaoModal'
-import { X, MapPin, Clock, Camera, MessageSquare, Globe, Users } from 'lucide-react'
-
-type Visibilidade = 'publico' | 'conexoes'
+import { X, MapPin, Clock, Camera, MessageSquare } from 'lucide-react'
 
 export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPublicado: () => void }) {
   const { session, perfil } = useAuth()
@@ -15,10 +13,7 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
   const [fotoBlob, setFotoBlob] = useState<Blob | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [texto, setTexto] = useState('')
-  const [apelidoManual, setApelidoManual] = useState('')
-  const [postarAnonimo, setPostarAnonimo] = useState(false)
   const [incluirLocalizacao, setIncluirLocalizacao] = useState(true)
-  const [visibilidade, setVisibilidade] = useState<Visibilidade>('publico')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -49,15 +44,15 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
   const publicarNoBanco = async (coordenadas: { lat: number; lng: number } | null, imageUrl: string | null) => {
     const { error: erroInsert } = await supabase.from('pulsos').insert([{
       texto: texto.trim(),
-      apelido: postarAnonimo ? (apelidoManual.trim() || 'ANÔNIMO') : perfil?.apelido,
+      apelido: perfil?.apelido,
       user_id: session!.user.id,
       lat: coordenadas?.lat ?? null,
       lng: coordenadas?.lng ?? null,
       categoria: 'AGORA',
       is_fixed: false,
       image_url: imageUrl,
-      anonimo: postarAnonimo,
-      visibilidade
+      anonimo: false,
+      visibilidade: 'publico'
     }])
     if (erroInsert) throw erroInsert
   }
@@ -169,51 +164,16 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
             onClick={() => setEtapa('camera')}
             className="flex items-center gap-1.5 text-[10px] font-mono text-accent/50 hover:text-accent underline w-fit"
           >
-            <Camera size={12} /> Adicionar foto também
+            <Camera size={12} /> Registrar o momento
           </button>
         )}
 
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder={fotoBlob ? 'Uma legenda pra esse momento (opcional)' : 'O que está rolando?'}
+          placeholder={fotoBlob ? 'Uma legenda pra esse momento (opcional)' : 'O que está acontecendo?'}
           className="w-full h-16 bg-background border border-borderRaw rounded-lg p-2 text-xs"
         />
-
-        <div className="space-y-1.5">
-          <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Quem pode ver</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setVisibilidade('publico')}
-              className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-widest py-2 rounded-lg border ${visibilidade === 'publico' ? 'bg-accent text-background border-accent' : 'border-borderRaw text-accent/60'}`}
-            >
-              <Globe size={12} /> Público
-            </button>
-            <button
-              type="button"
-              onClick={() => setVisibilidade('conexoes')}
-              className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-widest py-2 rounded-lg border ${visibilidade === 'conexoes' ? 'bg-accent text-background border-accent' : 'border-borderRaw text-accent/60'}`}
-            >
-              <Users size={12} /> Só conexões
-            </button>
-          </div>
-        </div>
-
-        <label className="flex items-center gap-2 text-[10px] font-mono text-accent/70">
-          <input type="checkbox" checked={postarAnonimo} onChange={(e) => setPostarAnonimo(e.target.checked)} />
-          Postar anônimo (em vez de @{perfil?.apelido})
-        </label>
-
-        {postarAnonimo && (
-          <input
-            type="text"
-            value={apelidoManual}
-            onChange={(e) => setApelidoManual(e.target.value)}
-            placeholder="Apelido para esse post (opcional)"
-            className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs"
-          />
-        )}
 
         <label className="flex items-center gap-2 text-[10px] font-mono text-accent/70">
           <input type="checkbox" checked={incluirLocalizacao} onChange={(e) => setIncluirLocalizacao(e.target.checked)} />
