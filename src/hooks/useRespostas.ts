@@ -54,5 +54,11 @@ export function useRespostas(pulsoId: number | null, carregarAoAbrir: boolean) {
     return { error }
   }
 
-  return { respostas, carregando, enviando, enviarResposta, recarregar: carregar }
+  const apagarResposta = async (id: number) => {
+    const { error } = await supabase.from('respostas').delete().eq('id', id)
+    if (!error) await carregar()
+    return { error }
+  }
+
+  return { respostas, carregando, enviando, enviarResposta, apagarResposta, recarregar: carregar }
 }

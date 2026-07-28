@@ -1,19 +1,26 @@
 import React, { useState } from 'react'
-import { Heart, MessageCircle, Send } from 'lucide-react'
+import { Heart, MessageCircle, Send, Trash2 } from 'lucide-react'
 import { useCurtidas } from '../hooks/useCurtidas'
 import { useRespostas } from '../hooks/useRespostas'
+import { useAuth } from '../hooks/useAuth'
 import { formatarTempoRelativo } from '../utils/tempo'
 
 export function InteracoesComentario({ pulsoId }: { pulsoId: number }) {
+  const { session, perfil } = useAuth()
   const { total: totalCurtidas, euCurti, alternarCurtida } = useCurtidas(pulsoId)
   const [mostrarRespostas, setMostrarRespostas] = useState(false)
-  const { respostas, carregando, enviando, enviarResposta } = useRespostas(pulsoId, mostrarRespostas)
+  const { respostas, carregando, enviando, enviarResposta, apagarResposta } = useRespostas(pulsoId, mostrarRespostas)
   const [textoResposta, setTextoResposta] = useState('')
 
   const enviar = async () => {
     if (!textoResposta.trim()) return
     const { error } = await enviarResposta(textoResposta)
     if (!error) setTextoResposta('')
+  }
+
+  const apagar = async (id: number) => {
+    if (!confirm('Apagar essa resposta?')) return
+    await apagarResposta(id)
   }
 
   return (
@@ -35,10 +42,17 @@ export function InteracoesComentario({ pulsoId }: { pulsoId: number }) {
           {!carregando && respostas.length === 0 && <p className="text-[9px] text-accent/30">Nenhuma resposta ainda.</p>}
 
           {respostas.map((r) => (
-            <div key={r.id} className="text-[10px]">
-              <span className="font-mono text-accent/70">@{r.apelido || 'usuário'}</span>
-              <span className="text-accent/60"> — {r.texto}</span>
-              <span className="text-accent/30 italic ml-1">{formatarTempoRelativo(r.created_at)}</span>
+            <div key={r.id} className="text-[10px] flex items-start justify-between gap-2">
+              <div>
+                <span className="font-mono text-accent/70">@{r.apelido || 'usuário'}</span>
+                <span className="text-accent/60"> — {r.texto}</span>
+                <span className="text-accent/30 italic ml-1">{formatarTempoRelativo(r.created_at)}</span>
+              </div>
+              {(session?.user.id === r.user_id || perfil?.is_admin) && (
+                <button onClick={() => apagar(r.id)} className="text-accent/30 hover:text-red-500 flex-shrink-0">
+                  <Trash2 size={11} />
+                </button>
+              )}
             </div>
           ))}
 
