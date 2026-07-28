@@ -289,12 +289,12 @@ function useAuthState() {
   }
 
   const definirBanido = async (targetId: string, banido: boolean, motivo?: string) => {
-    const { error } = await supabase.from('profiles').update({ banido, motivo_ban: banido ? (motivo || null) : null }).eq('id', targetId)
+    const { error } = await supabase.rpc('definir_banido', { target_id: targetId, novo_valor: banido, motivo_in: motivo || null })
     return { error }
   }
 
   const definirVerificado = async (targetId: string, verificado: boolean) => {
-    const { error } = await supabase.from('profiles').update({ verificado }).eq('id', targetId)
+    const { error } = await supabase.rpc('definir_verificado', { target_id: targetId, novo_valor: verificado })
     return { error }
   }
 

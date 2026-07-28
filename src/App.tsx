@@ -621,7 +621,7 @@ export default function App() {
                         Pode ser em: {IconeVibe && <IconeVibe size={10} />} {vibeInterpretada}
                         {outrasCategorias.map((cat) => {
                           const Icone = ICONE_POR_FILTRO[cat]
-                          return <span key={cat} className="flex items-center gap-0.5">, também {Icone && <Icone size={10} />} {cat}</span>
+                          return <span key={cat} className="flex items-center gap-0.5"> ou {Icone && <Icone size={10} />} {cat}</span>
                         })}
                       </>
                     )}
@@ -637,7 +637,7 @@ export default function App() {
               <p className="text-[10px] text-accent/30 text-center pt-4">
                 {termoBusca.trim()
                   ? 'Nenhum resultado encontrado.'
-                  : abaDrawer === 'onde_ir' ? 'Nenhum local fixado ainda.' : 'Nada no feed ainda.'}
+                  : abaDrawer === 'onde_ir' ? 'Nenhum local fixado ainda.' : 'Nada aqui ainda.'}
               </p>
             )}
 
