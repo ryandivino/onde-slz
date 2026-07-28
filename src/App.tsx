@@ -25,7 +25,7 @@ import { EstatisticasPanel } from './components/EstatisticasPanel'
 import { InstallPrompt } from './components/InstallPrompt'
 import { PerfilPublicoModal } from './components/PerfilPublicoModal'
 import { CadastroLocalModerador } from './components/CadastroLocalModerador'
-import { categoriaMaisProvavel } from './utils/interpretarVibe'
+import { categoriaMaisProvavel, interpretarVibe, categoriasAmbiguas } from './utils/interpretarVibe'
 import { useAprendizadoVibe } from './hooks/useAprendizadoVibe'
 import { interpretarComIA } from './utils/aprenderVibe'
 import { InteracoesComentario } from './components/InteracoesComentario'
@@ -43,7 +43,7 @@ import { PoliticasPopup } from './components/PoliticasModal'
 import { OnboardingPerfil } from './components/OnboardingPerfil'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
-import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair, Sparkles, Zap } from 'lucide-react'
+import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair, Sparkles, Zap, BadgeCheck } from 'lucide-react'
 import logo from './assets/logo.png'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -55,7 +55,7 @@ const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
 
 // Combina busca literal (nome/texto/apelido) + vibe interpretada numa nota
 // só — usado pra ORDENAR os locais no "Onde Ir", nunca pra escondê-los.
-function pontuarRelevancia(relato: any, termoBusca: string, vibeInterpretada: Categoria | null): number {
+function pontuarRelevancia(relato: any, termoBusca: string, categoriasRelevantes: Categoria[]): number {
   let pontos = 0
   const termo = termoBusca.trim().toLowerCase()
 
@@ -65,7 +65,7 @@ function pontuarRelevancia(relato: any, termoBusca: string, vibeInterpretada: Ca
     if (relato.apelido?.toLowerCase().includes(termo)) pontos += 4
   }
 
-  if (vibeInterpretada && relato.categoria === vibeInterpretada) pontos += 8
+  if (categoriasRelevantes.includes(relato.categoria)) pontos += 8
 
   return pontos
 }
@@ -233,11 +233,13 @@ export default function App() {
       // consegue montar esse relacionamento sozinho nesse caso.
       const idsUnicos = [...new Set(data.map((p) => p.user_id).filter(Boolean))]
       let mapaAvatares: Record<string, string | null> = {}
+      let mapaVerificados: Record<string, boolean> = {}
       let idsBanidos = new Set<string>()
 
       if (idsUnicos.length > 0) {
-        const { data: perfis } = await supabase.from('profiles').select('id, avatar_url, banido').in('id', idsUnicos)
+        const { data: perfis } = await supabase.from('profiles').select('id, avatar_url, banido, verificado').in('id', idsUnicos)
         mapaAvatares = Object.fromEntries((perfis || []).map((p) => [p.id, p.avatar_url]))
+        mapaVerificados = Object.fromEntries((perfis || []).map((p) => [p.id, p.verificado]))
         idsBanidos = new Set((perfis || []).filter((p) => p.banido).map((p) => p.id))
       }
 
@@ -247,7 +249,10 @@ export default function App() {
 
       const relatosComAvatar = dataSemBanidos.map((p) => ({
         ...p,
-        autor: { avatar_url: p.user_id ? mapaAvatares[p.user_id] ?? null : null }
+        autor: {
+          avatar_url: p.user_id ? mapaAvatares[p.user_id] ?? null : null,
+          verificado: p.user_id ? mapaVerificados[p.user_id] ?? false : false
+        }
       }))
 
       setRelatos(relatosComAvatar)
@@ -301,10 +306,14 @@ export default function App() {
   // noite" → BARES) e usa isso pra ORDENAR por relevância — nunca esconde
   // nada, só empurra pra cima o que combina mais. Isso evita a frustração
   // de "não achei nada" quando a frase só bateu parcialmente.
-  const vibeInterpretada =
-    abaDrawer === 'onde_ir' && !vibeDescartada
-      ? categoriaMaisProvavel(termoBusca, dicionarioAprendido) || vibeIA
-      : null
+  //
+  // Quando a vibe é ambígua (ex: "date" bate quase igual em restaurante e
+  // bar), guarda TODAS as categorias próximas da líder, não só uma —
+  // assim nenhuma fica "escondida" atrás de uma resposta única forçada.
+  const resultadoVibe = abaDrawer === 'onde_ir' && !vibeDescartada ? interpretarVibe(termoBusca, dicionarioAprendido) : []
+  const categoriasRelevantes: Categoria[] =
+    resultadoVibe.length > 0 ? categoriasAmbiguas(resultadoVibe) : vibeIA ? [vibeIA] : []
+  const vibeInterpretada = categoriasRelevantes[0] || null
 
   // Só chama o Gemini (gratuito, mas com cota) quando o dicionário curado +
   // o aprendido não reconheceram NADA — é o último recurso, não a primeira
@@ -326,7 +335,7 @@ export default function App() {
 
   const listaAtual =
     abaDrawer === 'onde_ir'
-      ? [...locaisFixos].sort((a, b) => pontuarRelevancia(b, termoBusca, vibeInterpretada) - pontuarRelevancia(a, termoBusca, vibeInterpretada))
+      ? [...locaisFixos].sort((a, b) => pontuarRelevancia(b, termoBusca, categoriasRelevantes) - pontuarRelevancia(a, termoBusca, categoriasRelevantes))
       : atividadesUsuarios.filter((r) => {
           if (!termoBusca.trim()) return true
           const termo = termoBusca.trim().toLowerCase()
@@ -598,13 +607,24 @@ export default function App() {
 
               {vibeInterpretada && (() => {
                 const IconeVibe = ICONE_POR_FILTRO[vibeInterpretada]
+                const outrasCategorias = categoriasRelevantes.slice(1)
                 return (
                   <button
                     onClick={() => setVibeDescartada(true)}
-                    className="flex items-center gap-1.5 text-[9px] font-mono text-accent/50 hover:text-accent/70 bg-background/40 rounded-full px-2 py-1 w-fit"
+                    className="flex items-center gap-1.5 text-[9px] font-mono text-accent/50 hover:text-accent/70 bg-background/40 rounded-full px-2 py-1 w-fit flex-wrap"
                   >
                     <Sparkles size={10} />
-                    Interpretei como: {IconeVibe && <IconeVibe size={10} />} {vibeInterpretada}
+                    {outrasCategorias.length === 0 ? (
+                      <>Interpretei como: {IconeVibe && <IconeVibe size={10} />} {vibeInterpretada}</>
+                    ) : (
+                      <>
+                        Pode ser em: {IconeVibe && <IconeVibe size={10} />} {vibeInterpretada}
+                        {outrasCategorias.map((cat) => {
+                          const Icone = ICONE_POR_FILTRO[cat]
+                          return <span key={cat} className="flex items-center gap-0.5">, também {Icone && <Icone size={10} />} {cat}</span>
+                        })}
+                      </>
+                    )}
                     <X size={10} className="ml-1" />
                   </button>
                 )
@@ -738,6 +758,7 @@ export default function App() {
                         </span>
                       )}
                       {relato.apelido || '@ANÔNIMO'}
+                      {relato.autor?.verificado && <BadgeCheck size={12} style={{ color: '#ff14e1' }} />}
                     </h2>
                   ) : (
                     <h2 className="text-xs font-mono flex items-center gap-1.5">
@@ -937,7 +958,7 @@ export default function App() {
           <div className="w-full max-w-sm bg-surface border border-red-500/40 rounded-2xl p-6 space-y-4 text-center">
             <span className="text-[10px] font-mono tracking-widest text-red-400 block">CONTA SUSPENSA</span>
             <p className="text-xs text-accent/70">
-              Sua conta foi suspensa por um moderador do ONDE e não pode mais ser usada. Se você acha que isso foi um erro, entre em contato pelo suporte.
+              Sua conta foi suspensa e não pode mais ser usada. Se você acha que isso foi um erro, entre em contato pelo suporte.
             </p>
             <button onClick={limparAvisoBanido} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs">
               ENTENDI

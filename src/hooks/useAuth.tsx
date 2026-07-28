@@ -14,6 +14,7 @@ export type Perfil = {
   banido: boolean
   aceitou_politicas: boolean
   onboarding_concluido: boolean
+  verificado: boolean
 }
 
 const MENSAGEM_APELIDO_EM_USO = 'Esse @ já está em uso. Escolha outro.'
@@ -292,6 +293,11 @@ function useAuthState() {
     return { error }
   }
 
+  const definirVerificado = async (targetId: string, verificado: boolean) => {
+    const { error } = await supabase.from('profiles').update({ verificado }).eq('id', targetId)
+    return { error }
+  }
+
   const concluirOnboarding = async () => {
     if (!session?.user) return { error: new Error('Não autenticado.') }
     const { error } = await supabase.from('profiles').update({ onboarding_concluido: true }).eq('id', session.user.id)
@@ -318,6 +324,7 @@ function useAuthState() {
     definirNovaSenha,
     definirAdmin,
     definirBanido,
+    definirVerificado,
     concluirOnboarding
   }
 }

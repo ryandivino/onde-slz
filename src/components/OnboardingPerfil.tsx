@@ -46,7 +46,7 @@ export function OnboardingPerfil() {
           BEM-VINDO(A), @{perfil?.apelido}
         </span>
         <p className="text-xs text-accent/60">
-          Quer já colocar uma foto e uma bio? É rapidinho — mas se não quiser agora, pode pular sem problema.
+          Quer já colocar uma foto e uma bio? É rapidinho.
         </p>
 
         {erro && <div className="text-[10px] text-red-400">{erro}</div>}

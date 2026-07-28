@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
-import { X, ShieldCheck, ShieldOff, Search, Ban, CheckCircle } from 'lucide-react'
+import { X, ShieldCheck, ShieldOff, Search, Ban, CheckCircle, BadgeCheck } from 'lucide-react'
 
-type PerfilGerenciavel = { id: string; apelido: string; is_admin: boolean; dono: boolean; banido: boolean }
+type PerfilGerenciavel = { id: string; apelido: string; is_admin: boolean; dono: boolean; banido: boolean; verificado: boolean }
 
 export function GerenciarUsuariosManager({ onClose }: { onClose: () => void }) {
-  const { session, definirAdmin, definirBanido } = useAuth()
+  const { session, definirAdmin, definirBanido, definirVerificado } = useAuth()
   const meuId = session?.user.id
 
   const [moderadores, setModeradores] = useState<PerfilGerenciavel[]>([])
@@ -16,7 +16,7 @@ export function GerenciarUsuariosManager({ onClose }: { onClose: () => void }) {
   const [erro, setErro] = useState<string | null>(null)
 
   const carregarModeradores = useCallback(async () => {
-    const { data } = await supabase.from('profiles').select('id, apelido, is_admin, dono, banido').eq('is_admin', true)
+    const { data } = await supabase.from('profiles').select('id, apelido, is_admin, dono, banido, verificado').eq('is_admin', true)
     setModeradores(data || [])
   }, [])
 
@@ -29,7 +29,7 @@ export function GerenciarUsuariosManager({ onClose }: { onClose: () => void }) {
     setBuscando(true)
     const { data } = await supabase
       .from('profiles')
-      .select('id, apelido, is_admin, dono, banido')
+      .select('id, apelido, is_admin, dono, banido, verificado')
       .ilike('apelido', `%${valor.trim()}%`)
       .neq('id', meuId)
       .limit(10)
@@ -63,6 +63,15 @@ export function GerenciarUsuariosManager({ onClose }: { onClose: () => void }) {
     await carregarModeradores()
   }
 
+  const alternarVerificado = async (perfil: PerfilGerenciavel) => {
+    setErro(null)
+    const novoValor = !perfil.verificado
+    const { error } = await definirVerificado(perfil.id, novoValor)
+    if (error) { setErro(error.message); return }
+    setResultados((rs) => rs.map((r) => (r.id === perfil.id ? { ...r, verificado: novoValor } : r)))
+    await carregarModeradores()
+  }
+
   return (
     <div className="fixed inset-0 bg-background/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-surface border border-amber-500/40 rounded-2xl p-6 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto">
@@ -81,7 +90,7 @@ export function GerenciarUsuariosManager({ onClose }: { onClose: () => void }) {
             type="text"
             value={termo}
             onChange={(e) => lidarComBusca(e.target.value)}
-            placeholder="Buscar por @ para promover ou suspender..."
+            placeholder="Buscar por @ para gerenciar..."
             className="w-full bg-background border border-borderRaw rounded-lg p-2 pl-7 text-xs"
           />
         </div>
@@ -92,13 +101,21 @@ export function GerenciarUsuariosManager({ onClose }: { onClose: () => void }) {
             {!buscando && resultados.length === 0 && <p className="text-[10px] text-accent/40">Nenhum @ encontrado.</p>}
             {resultados.map((r) => (
               <div key={r.id} className="flex items-center justify-between text-xs font-mono">
-                <span>
+                <span className="flex items-center gap-1">
                   @{r.apelido}
+                  {r.verificado && <BadgeCheck size={12} style={{ color: '#ff14e1' }} />}
                   {r.dono && <span className="ml-1 text-[8px] text-amber-500 border border-amber-500/40 rounded px-1">PROPRIETÁRIO</span>}
                   {r.banido && <span className="ml-1 text-[8px] text-red-400 border border-red-400/40 rounded px-1">SUSPENSO</span>}
                 </span>
                 {!r.dono && (
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => alternarVerificado(r)}
+                      style={{ color: r.verificado ? '#ff14e1' : undefined }}
+                      className={`flex items-center gap-1 text-[9px] ${!r.verificado ? 'text-accent/70' : ''}`}
+                    >
+                      <BadgeCheck size={13} /> {r.verificado ? 'REMOVER SELO' : 'VERIFICAR'}
+                    </button>
                     <button
                       onClick={() => alternarAdmin(r)}
                       className={`flex items-center gap-1 text-[9px] ${r.is_admin ? 'text-red-400' : 'text-accent/70'}`}
@@ -124,8 +141,9 @@ export function GerenciarUsuariosManager({ onClose }: { onClose: () => void }) {
           </span>
           {moderadores.map((m) => (
             <div key={m.id} className="flex items-center justify-between text-xs font-mono">
-              <span>
+              <span className="flex items-center gap-1">
                 @{m.apelido} {m.id === meuId && <span className="text-accent/30">(você)</span>}
+                {m.verificado && <BadgeCheck size={12} style={{ color: '#ff14e1' }} />}
                 {m.dono && <span className="ml-1 text-[8px] text-amber-500 border border-amber-500/40 rounded px-1">PROPRIETÁRIO</span>}
               </span>
               {!m.dono && m.id !== meuId && (

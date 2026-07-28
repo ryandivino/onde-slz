@@ -32,3 +32,16 @@ export function categoriaMaisProvavel(texto: string, dicionarioExtra?: Dicionari
   const resultado = interpretarVibe(texto, dicionarioExtra)
   return resultado.length > 0 ? resultado[0].categoria : null
 }
+
+// Quando duas ou mais categorias pontuam próximo uma da outra (ex: "date"
+// bate quase igual em RESTAURANTES e BARES), não faz sentido cravar só uma
+// como "a resposta certa" — essa função devolve todas as que estão dentro
+// de uma margem da líder, em ordem, até um limite.
+export function categoriasAmbiguas(resultado: ResultadoVibe[], limite = 3, razaoMinima = 0.65): Categoria[] {
+  if (resultado.length === 0) return []
+  const maiorPontuacao = resultado[0].pontuacao
+  return resultado
+    .filter((r) => r.pontuacao >= maiorPontuacao * razaoMinima)
+    .slice(0, limite)
+    .map((r) => r.categoria)
+}

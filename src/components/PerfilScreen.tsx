@@ -4,7 +4,7 @@ import { useEmpresa } from '../hooks/useEmpresa'
 import { useSeguidores } from '../hooks/useSeguidores'
 import { ListaConexoesModal } from './ListaConexoesModal'
 import { FeedPerfil } from './FeedPerfil'
-import { X, Camera, Pencil, Check } from 'lucide-react'
+import { X, Camera, Pencil, Check, BadgeCheck } from 'lucide-react'
 import { AtributosEstabelecimento } from './AtributosEstabelecimento'
 import type { Atributos } from './AtributosEstabelecimento'
 
@@ -148,6 +148,7 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="flex items-center justify-center gap-2 text-sm font-mono">
             <span>@{perfil.apelido}</span>
+            {perfil.verificado && <BadgeCheck size={14} style={{ color: '#ff14e1' }} />}
             <button onClick={iniciarEdicaoApelido} className="text-accent/40 hover:text-accent"><Pencil size={12} /></button>
             {perfil.is_empresa && (
               <span className="text-[8px] text-amber-500 border border-amber-500/40 rounded px-1">ESTABELECIMENTO</span>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
-import { X, Store, Phone, AtSign, Globe, Clock, MapPin, UserPlus, UserCheck } from 'lucide-react'
+import { X, Store, Phone, AtSign, Globe, Clock, MapPin, UserPlus, UserCheck, BadgeCheck } from 'lucide-react'
 import { ATRIBUTOS_DISPONIVEIS } from './AtributosEstabelecimento'
 import { useSeguidores } from '../hooks/useSeguidores'
 import { ListaConexoesModal } from './ListaConexoesModal'
@@ -12,6 +12,7 @@ type PerfilPublico = {
   bio: string | null
   is_admin: boolean
   is_empresa: boolean
+  verificado: boolean
 }
 
 type EmpresaPublica = {
@@ -38,7 +39,7 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
       setCarregando(true)
       const { data: dadosPerfil } = await supabase
         .from('profiles')
-        .select('apelido, avatar_url, bio, is_admin, is_empresa')
+        .select('apelido, avatar_url, bio, is_admin, is_empresa, verificado')
         .eq('id', userId)
         .single()
 
@@ -87,6 +88,7 @@ export function PerfilPublicoModal({ userId, onClose }: { userId: string; onClos
               />
               <div className="flex items-center gap-1.5 text-sm font-mono">
                 <span>@{perfil.apelido}</span>
+                {perfil.verificado && <BadgeCheck size={14} style={{ color: '#ff14e1' }} />}
                 {perfil.is_empresa && (
                   <span className="text-[8px] text-amber-500 border border-amber-500/40 rounded px-1">ESTABELECIMENTO</span>
                 )}
