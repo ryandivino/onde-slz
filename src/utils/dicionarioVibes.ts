@@ -106,7 +106,11 @@ export const DICIONARIO_VIBES: Record<Exclude<Categoria, 'OUTROS'>, PalavraComPe
     { palavra: 'barato', peso: 1 },
     { palavra: 'fim de tarde', peso: 2 },
     { palavra: 'finzinho de tarde', peso: 2 },
-    { palavra: 'final de tarde', peso: 2 }
+    { palavra: 'final de tarde', peso: 2 },
+    { palavra: 'sextou', peso: 3 },
+    { palavra: 'fim de semana', peso: 3 },
+    { palavra: 'final de semana', peso: 3 },
+    { palavra: 'tardezinha', peso: 3 }
     
   ],
   RESTAURANTES: [
@@ -198,7 +202,11 @@ export const DICIONARIO_VIBES: Record<Exclude<Categoria, 'OUTROS'>, PalavraComPe
     { palavra: 'barato', peso: 1 },
     { palavra: 'fim de tarde', peso: 1 },
     { palavra: 'finzinho de tarde', peso: 1 },
-    { palavra: 'final de tarde', peso: 1 }
+    { palavra: 'final de tarde', peso: 1 },
+    { palavra: 'sextou', peso: 2 },
+    { palavra: 'fim de semana', peso: 2 },
+    { palavra: 'final de semana', peso: 2 },
+    { palavra: 'tardezinha', peso: 2 }
 
   ],
   CULTURA: [

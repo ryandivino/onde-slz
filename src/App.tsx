@@ -134,6 +134,12 @@ export default function App() {
   const [abaDrawer, setAbaDrawer] = useState<'feed' | 'onde_ir' | 'eventos'>('feed')
   const [termoBusca, setTermoBusca] = useState('')
   const [vibeDescartada, setVibeDescartada] = useState(false)
+
+  // Ordem aleatória do "Onde Ir" quando não tem busca ativa — mas fixa
+  // durante essa visita (não sorteia de novo a cada render, senão a lista
+  // fica "pulando" enquanto a pessoa rola a tela). Sorteia de novo só
+  // quando o app é reaberto.
+  const pesosAleatoriosRef = useRef<Record<number, number>>({})
   const { dicionarioAprendido } = useAprendizadoVibe()
   const [vibeIA, setVibeIA] = useState<Categoria | null>(null)
 
@@ -333,9 +339,17 @@ export default function App() {
     return () => clearTimeout(temporizador)
   }, [termoBusca, abaDrawer, vibeDescartada, dicionarioAprendido])
 
+  locaisFixos.forEach((l) => {
+    if (!(l.id in pesosAleatoriosRef.current)) {
+      pesosAleatoriosRef.current[l.id] = Math.random()
+    }
+  })
+
   const listaAtual =
     abaDrawer === 'onde_ir'
-      ? [...locaisFixos].sort((a, b) => pontuarRelevancia(b, termoBusca, categoriasRelevantes) - pontuarRelevancia(a, termoBusca, categoriasRelevantes))
+      ? termoBusca.trim()
+        ? [...locaisFixos].sort((a, b) => pontuarRelevancia(b, termoBusca, categoriasRelevantes) - pontuarRelevancia(a, termoBusca, categoriasRelevantes))
+        : [...locaisFixos].sort((a, b) => (pesosAleatoriosRef.current[a.id] ?? 0) - (pesosAleatoriosRef.current[b.id] ?? 0))
       : atividadesUsuarios.filter((r) => {
           if (!termoBusca.trim()) return true
           const termo = termoBusca.trim().toLowerCase()
@@ -618,10 +632,10 @@ export default function App() {
                       <>Interpretei como: {IconeVibe && <IconeVibe size={10} />} {vibeInterpretada}</>
                     ) : (
                       <>
-                        Pode ser em: {IconeVibe && <IconeVibe size={10} />} {vibeInterpretada}
+                        Pode ser em vários lugares — destacando {IconeVibe && <IconeVibe size={10} />} {vibeInterpretada}
                         {outrasCategorias.map((cat) => {
                           const Icone = ICONE_POR_FILTRO[cat]
-                          return <span key={cat} className="flex items-center gap-0.5"> ou {Icone && <Icone size={10} />} {cat}</span>
+                          return <span key={cat} className="flex items-center gap-0.5">, também {Icone && <Icone size={10} />} {cat}</span>
                         })}
                       </>
                     )}
@@ -637,7 +651,7 @@ export default function App() {
               <p className="text-[10px] text-accent/30 text-center pt-4">
                 {termoBusca.trim()
                   ? 'Nenhum resultado encontrado.'
-                  : abaDrawer === 'onde_ir' ? 'Nenhum local fixado ainda.' : 'Nada aqui ainda.'}
+                  : abaDrawer === 'onde_ir' ? 'Nenhum local fixado ainda.' : 'Nada no feed ainda.'}
               </p>
             )}
 
@@ -886,7 +900,7 @@ export default function App() {
               <button type="button" onClick={() => setIsFormOpen(false)} className="text-accent/40 hover:text-accent"><X size={16} /></button>
             </div>
 
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando bem aqui, agora?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está acontecendo?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
 
             <button type="submit" disabled={carregando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg">
               {carregando ? 'ENVIANDO...' : 'ENVIAR'}
@@ -958,7 +972,7 @@ export default function App() {
           <div className="w-full max-w-sm bg-surface border border-red-500/40 rounded-2xl p-6 space-y-4 text-center">
             <span className="text-[10px] font-mono tracking-widest text-red-400 block">CONTA SUSPENSA</span>
             <p className="text-xs text-accent/70">
-              Sua conta foi suspensa e não pode mais ser usada. Se você acha que isso foi um erro, entre em contato pelo suporte.
+              Sua conta foi suspensa por um moderador do ONDE e não pode mais ser usada. Se você acha que isso foi um erro, entre em contato pelo suporte.
             </p>
             <button onClick={limparAvisoBanido} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs">
               ENTENDI
