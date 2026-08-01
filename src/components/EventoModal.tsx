@@ -135,14 +135,14 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
 
         <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição (opcional)" className="w-full h-16 bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
-        <input type="text" value={linkIngresso} onChange={(e) => setLinkIngresso(e.target.value)} placeholder="Link de ingressos (opcional)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+        <input type="text" value={linkIngresso} onChange={(e) => setLinkIngresso(e.target.value)} placeholder="Link de ingressos (opcional — Sympla, Eventbrite, etc.)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
         <label className="flex items-center gap-2 text-[10px] font-mono text-accent/60 cursor-pointer">
           <Camera size={14} />
           {foto ? 'Foto selecionada — trocar' : 'Adicionar foto (opcional)'}
           <input type="file" accept="image/*" onChange={lidarComFoto} className="hidden" />
         </label>
-        {fotoPreview && <img src={fotoPreview} alt="Prévia" className="w-full rounded-lg border border-borderRaw max-h-32 object-cover" />}
+        {fotoPreview && <img src={fotoPreview} alt="Prévia" className="w-full max-h-64 object-contain rounded-lg border border-borderRaw bg-black/20" />}
 
         <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest flex items-center gap-1.5">
           <MapPin size={11} /> Endereço do evento *

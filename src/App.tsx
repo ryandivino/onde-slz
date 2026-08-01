@@ -839,7 +839,7 @@ export default function App() {
                 {eventosGerais.map((evento) => (
                   <div key={evento.id} className="rounded-xl border border-borderRaw/20 bg-background/40 p-3 space-y-1.5">
                     {evento.image_url && (
-                      <img src={evento.image_url} alt="" className="w-full max-h-40 object-cover rounded-lg" />
+                      <img src={evento.image_url} alt="" className="w-full max-h-72 object-contain rounded-lg bg-black/20" />
                     )}
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -972,7 +972,7 @@ export default function App() {
           <div className="w-full max-w-sm bg-surface border border-red-500/40 rounded-2xl p-6 space-y-4 text-center">
             <span className="text-[10px] font-mono tracking-widest text-red-400 block">CONTA SUSPENSA</span>
             <p className="text-xs text-accent/70">
-              Sua conta foi suspensa por um moderador do ONDE e não pode mais ser usada. Se você acha que isso foi um erro, entre em contato pelo suporte.
+              Sua conta foi suspensa e não pode mais ser usada. Se você acha que isso foi um erro, entre em contato pelo suporte.
             </p>
             <button onClick={limparAvisoBanido} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs">
               ENTENDI
