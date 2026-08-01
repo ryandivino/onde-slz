@@ -142,7 +142,11 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
           {foto ? 'Foto selecionada — trocar' : 'Adicionar foto (opcional)'}
           <input type="file" accept="image/*" onChange={lidarComFoto} className="hidden" />
         </label>
-        {fotoPreview && <img src={fotoPreview} alt="Prévia" className="w-full max-h-64 object-contain rounded-lg border border-borderRaw bg-black/20" />}
+        {fotoPreview && (
+          <div className="w-full aspect-[4/3] bg-black/30 rounded-lg border border-borderRaw overflow-hidden flex items-center justify-center">
+            <img src={fotoPreview} alt="Prévia" className="max-w-full max-h-full object-contain" />
+          </div>
+        )}
 
         <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest flex items-center gap-1.5">
           <MapPin size={11} /> Endereço do evento *

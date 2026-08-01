@@ -839,7 +839,9 @@ export default function App() {
                 {eventosGerais.map((evento) => (
                   <div key={evento.id} className="rounded-xl border border-borderRaw/20 bg-background/40 p-3 space-y-1.5">
                     {evento.image_url && (
-                      <img src={evento.image_url} alt="" className="w-full max-h-72 object-contain rounded-lg bg-black/20" />
+                      <div className="w-full aspect-[4/3] bg-black/30 rounded-lg overflow-hidden flex items-center justify-center">
+                        <img src={evento.image_url} alt="" className="max-w-full max-h-full object-contain" />
+                      </div>
                     )}
                     <div className="flex items-start justify-between gap-2">
                       <div>
