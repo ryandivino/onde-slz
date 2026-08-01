@@ -14,7 +14,7 @@ export function LoadingScreen({ onIniciar }: { onIniciar: () => void }) {
       </span>
 
       <div className="absolute bottom-8 flex items-center gap-1.5 text-accent/30">
-        <span className="text-[9px] font-mono uppercase tracking-widest">by</span>
+        <span className="text-[9px] font-mono uppercase tracking-widest">from MEMENTO</span>
         <img src={mementoLogo} alt="Memento" className="h-3 opacity-60" />
       </div>
     </div>
