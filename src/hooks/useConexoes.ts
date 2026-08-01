@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from './useAuth'
 
-export type PerfilBasico = { id: string; apelido: string }
+export type PerfilBasico = { id: string; apelido: string; verificado?: boolean }
 
 export function useConexoes() {
   const { session } = useAuth()
@@ -27,7 +27,7 @@ export function useConexoes() {
 
     let perfis: PerfilBasico[] = []
     if (idsUnicos.length > 0) {
-      const { data } = await supabase.from('profiles').select('id, apelido').in('id', idsUnicos)
+      const { data } = await supabase.from('profiles').select('id, apelido, verificado').in('id', idsUnicos)
       perfis = data || []
     }
     const mapa = new Map(perfis.map((p) => [p.id, p]))
@@ -47,7 +47,7 @@ export function useConexoes() {
     if (!termo.trim() || !meuId) return []
     const { data } = await supabase
       .from('profiles')
-      .select('id, apelido')
+      .select('id, apelido, verificado')
       .ilike('apelido', `%${termo.trim()}%`)
       .neq('id', meuId)
       .limit(10)

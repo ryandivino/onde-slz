@@ -1,6 +1,6 @@
 import React from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { LogOut, ShieldCheck, User, Pencil, X, Store, Image, Flag, Mail, BarChart3, Calendar } from 'lucide-react'
+import { LogOut, ShieldCheck, User, Pencil, X, Store, Image, Flag, Mail, BarChart3, Calendar, BadgeCheck } from 'lucide-react'
 
 export function MenuPanel({
   onClose,
@@ -54,7 +54,10 @@ export function MenuPanel({
               />
               <div className="flex-1 text-left">
                 <div className="flex items-center gap-1.5">
-                  <span>@{perfil.apelido}</span>
+                  <span className="flex items-center gap-1">
+                    @{perfil.apelido}
+                    {perfil.verificado && <BadgeCheck size={12} style={{ color: '#ff14e1' }} />}
+                  </span>
                   {perfil.is_empresa && (
                     <span className="text-[8px] text-amber-500 border border-amber-500/40 rounded px-1">ESTABELECIMENTO</span>
                   )}

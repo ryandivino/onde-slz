@@ -206,7 +206,9 @@ export const DICIONARIO_VIBES: Record<Exclude<Categoria, 'OUTROS'>, PalavraComPe
     { palavra: 'sextou', peso: 2 },
     { palavra: 'fim de semana', peso: 2 },
     { palavra: 'final de semana', peso: 2 },
-    { palavra: 'tardezinha', peso: 2 }
+    { palavra: 'tardezinha', peso: 2 },
+    { palavra: 'sozinho', peso: 1 },
+    { palavra: 'sozinha', peso: 1 }
 
   ],
   CULTURA: [
@@ -287,7 +289,9 @@ export const DICIONARIO_VIBES: Record<Exclude<Categoria, 'OUTROS'>, PalavraComPe
     { palavra: 'barato', peso: 1 },
     { palavra: 'fim de tarde', peso: 1 },
     { palavra: 'finzinho de tarde', peso: 1 },
-    { palavra: 'final de tarde', peso: 1 }
+    { palavra: 'final de tarde', peso: 1 },
+    { palavra: 'sozinho', peso: 3 },
+    { palavra: 'sozinha', peso: 3 }
 
   ]
 }

@@ -6,7 +6,7 @@ import 'leaflet.heat'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-import { Beer, UtensilsCrossed, Palette, MapPin, Calendar, Navigation, Flag, Send, Zap } from 'lucide-react'
+import { Beer, UtensilsCrossed, Palette, MapPin, Calendar, Navigation, Flag, Send, Zap, BadgeCheck } from 'lucide-react'
 import { formatarTempoRelativo } from '../utils/tempo'
 
 type Foco = { lat: number; lng: number; ts: number } | null
@@ -397,10 +397,14 @@ export function Map({
         pinIcon = criarIconeRole(relato.autor?.avatar_url || null, relato.apelido || 'anonimo')
       }
 
+      const seloVerificado = !relato.is_fixed && relato.autor?.verificado
+        ? `<span style="display:inline-flex; vertical-align:middle; margin-left:3px;">${svgComoTexto(BadgeCheck, '#ff14e1')}</span>`
+        : ''
+
       L.marker([relato.lat, relato.lng], { icon: pinIcon })
         .addTo(markersLayer.current!)
         .bindPopup(montarPopupComAcoes(
-          relato.nome_local || relato.apelido || 'ANÔNIMO',
+          (relato.nome_local || relato.apelido || 'ANÔNIMO') + seloVerificado,
           `<p>"${relato.texto}"</p>${relato.endereco ? `<p class="text-gray-500 text-[9px] mt-0.5">📍 ${relato.endereco}</p>` : ''}${relato.is_fixed ? '' : `<span class="italic text-gray-500">${formatarTempoRelativo(relato.created_at)}</span>`}`,
           [
             { classe: 'popup-btn-rota', icone: svgBotao(Navigation) },

@@ -7,6 +7,7 @@ export type Visualizacao = {
   apelido: string
   avatarUrl: string | null
   curtiu: boolean
+  verificado: boolean
 }
 
 export function useVisualizacoesAgora() {
@@ -31,9 +32,9 @@ export function useVisualizacoesAgora() {
     const idsCurtiram = new Set((curtidas || []).map((c) => c.user_id))
     const idsUnicos = [...new Set((vistos || []).map((v) => v.user_id))]
 
-    let perfis: { id: string; apelido: string; avatar_url: string | null }[] = []
+    let perfis: { id: string; apelido: string; avatar_url: string | null; verificado: boolean }[] = []
     if (idsUnicos.length > 0) {
-      const { data } = await supabase.from('profiles').select('id, apelido, avatar_url').in('id', idsUnicos)
+      const { data } = await supabase.from('profiles').select('id, apelido, avatar_url, verificado').in('id', idsUnicos)
       perfis = data || []
     }
     const mapaPerfis = Object.fromEntries(perfis.map((p) => [p.id, p]))
@@ -44,7 +45,8 @@ export function useVisualizacoesAgora() {
       userId: v.user_id,
       apelido: mapaPerfis[v.user_id]?.apelido || 'usuário',
       avatarUrl: mapaPerfis[v.user_id]?.avatar_url || null,
-      curtiu: idsCurtiram.has(v.user_id)
+      curtiu: idsCurtiram.has(v.user_id),
+      verificado: mapaPerfis[v.user_id]?.verificado || false
     }))
   }
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useConexoes } from '../hooks/useConexoes'
-import { X, Send } from 'lucide-react'
+import { X, Send, BadgeCheck } from 'lucide-react'
 
 type PulsoParaConvite = {
   id: number
@@ -59,7 +59,10 @@ export function ConvidarAmigoModal({ pulso, onClose }: { pulso: PulsoParaConvite
           const enviado = enviadosPara.has(amigo.id)
           return (
             <div key={amigo.id} className="flex items-center justify-between text-xs font-mono">
-              <span>@{amigo.apelido}</span>
+              <span className="flex items-center gap-1">
+                @{amigo.apelido}
+                {amigo.verificado && <BadgeCheck size={11} style={{ color: '#ff14e1' }} />}
+              </span>
               {enviado ? (
                 <span className="text-[9px] text-green-400">CONVIDADO</span>
               ) : (

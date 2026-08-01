@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Heart, MessageCircle, Send, Trash2 } from 'lucide-react'
+import { Heart, MessageCircle, Send, Trash2, BadgeCheck } from 'lucide-react'
 import { useCurtidas } from '../hooks/useCurtidas'
 import { useRespostas } from '../hooks/useRespostas'
 import { useAuth } from '../hooks/useAuth'
@@ -9,7 +9,7 @@ export function InteracoesComentario({ pulsoId }: { pulsoId: number }) {
   const { session, perfil } = useAuth()
   const { total: totalCurtidas, euCurti, alternarCurtida } = useCurtidas(pulsoId)
   const [mostrarRespostas, setMostrarRespostas] = useState(false)
-  const { respostas, carregando, enviando, enviarResposta, apagarResposta } = useRespostas(pulsoId, mostrarRespostas)
+  const { respostas, total: totalRespostas, carregando, enviando, enviarResposta, apagarResposta } = useRespostas(pulsoId, mostrarRespostas)
   const [textoResposta, setTextoResposta] = useState('')
 
   const enviar = async () => {
@@ -32,7 +32,7 @@ export function InteracoesComentario({ pulsoId }: { pulsoId: number }) {
         </button>
         <button onClick={() => setMostrarRespostas((v) => !v)} className="flex items-center gap-1 text-[10px] font-mono text-accent/40 hover:text-accent">
           <MessageCircle size={13} />
-          {respostas.length > 0 && respostas.length}
+          {totalRespostas > 0 && totalRespostas}
         </button>
       </div>
 
@@ -44,8 +44,11 @@ export function InteracoesComentario({ pulsoId }: { pulsoId: number }) {
           {respostas.map((r) => (
             <div key={r.id} className="text-[10px] flex items-start justify-between gap-2">
               <div>
-                <span className="font-mono text-accent/70">@{r.apelido || 'usuário'}</span>
-                <span className="text-accent/60"> — {r.texto}</span>
+                <span className="font-mono text-accent/70 inline-flex items-center gap-0.5">
+                  @{r.apelido || 'usuário'}
+                  {r.verificado && <BadgeCheck size={10} style={{ color: '#ff14e1' }} />}
+                </span>
+                <span className="text-accent/60">: {r.texto}</span>
                 <span className="text-accent/30 italic ml-1">{formatarTempoRelativo(r.created_at)}</span>
               </div>
               {(session?.user.id === r.user_id || perfil?.is_admin) && (

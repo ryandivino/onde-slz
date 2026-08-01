@@ -13,7 +13,6 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
   const [fotoBlob, setFotoBlob] = useState<Blob | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [texto, setTexto] = useState('')
-  const [incluirLocalizacao, setIncluirLocalizacao] = useState(true)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -29,7 +28,7 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
 
   const obterLocalizacao = (): Promise<{ lat: number; lng: number } | null> => {
     return new Promise((resolve) => {
-      if (!incluirLocalizacao || !navigator.geolocation) {
+      if (!navigator.geolocation) {
         resolve(null)
         return
       }
@@ -41,13 +40,13 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
     })
   }
 
-  const publicarNoBanco = async (coordenadas: { lat: number; lng: number } | null, imageUrl: string | null) => {
+  const publicarNoBanco = async (coordenadas: { lat: number; lng: number }, imageUrl: string | null) => {
     const { error: erroInsert } = await supabase.from('pulsos').insert([{
       texto: texto.trim(),
       apelido: perfil?.apelido,
       user_id: session!.user.id,
-      lat: coordenadas?.lat ?? null,
-      lng: coordenadas?.lng ?? null,
+      lat: coordenadas.lat,
+      lng: coordenadas.lng,
       categoria: 'AGORA',
       is_fixed: false,
       image_url: imageUrl,
@@ -64,6 +63,16 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
     setErro(null)
 
     try {
+      // O AGORA é sobre "aqui, agora" — localização não é mais opcional,
+      // é o que diferencia ele do comentário comum (esse sim sem local).
+      const coordenadas = await obterLocalizacao()
+
+      if (!coordenadas) {
+        setErro('Não conseguimos acessar sua localização. Ative a permissão de localização pro ONDE e tente de novo.')
+        setEnviando(false)
+        return
+      }
+
       let imageUrl: string | null = urlFotoEnviada
 
       if (fotoBlob && !imageUrl) {
@@ -77,15 +86,8 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
         setUrlFotoEnviada(imageUrl)
       }
 
-      const coordenadas = await obterLocalizacao()
-
-      if (coordenadas) {
-        setCoordenadasParaConfirmar(coordenadas)
-        setMostrarConfirmacao(true)
-      } else {
-        await publicarNoBanco(null, imageUrl)
-        onPublicado()
-      }
+      setCoordenadasParaConfirmar(coordenadas)
+      setMostrarConfirmacao(true)
     } catch (err: any) {
       setErro(err.message || 'Erro ao publicar. Tente de novo.')
     } finally {
@@ -122,14 +124,14 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
             onClick={() => setEtapa('camera')}
             className="w-full flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-widest py-4 rounded-lg bg-accent text-background font-bold"
           >
-            <Camera size={16} /> Publicar uma foto
+            <Camera size={16} /> Tirar uma foto
           </button>
 
           <button
             onClick={() => setEtapa('compor')}
             className="w-full flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-widest py-4 rounded-lg border border-borderRaw text-accent/70"
           >
-            <MessageSquare size={16} /> Só um comentário
+            <MessageSquare size={16} /> Só escrever um comentário
           </button>
         </div>
       </div>
@@ -171,15 +173,14 @@ export function AgoraModal({ onClose, onPublicado }: { onClose: () => void; onPu
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder={fotoBlob ? 'Uma legenda pra esse momento (opcional)' : 'O que está acontecendo?'}
+          placeholder={fotoBlob ? 'Uma legenda pra esse momento (opcional)' : 'O que está rolando?'}
           className="w-full h-16 bg-background border border-borderRaw rounded-lg p-2 text-xs"
         />
 
-        <label className="flex items-center gap-2 text-[10px] font-mono text-accent/70">
-          <input type="checkbox" checked={incluirLocalizacao} onChange={(e) => setIncluirLocalizacao(e.target.checked)} />
+        <p className="flex items-center gap-2 text-[10px] font-mono text-accent/50">
           <MapPin size={12} />
-          Incluir minha localização em tempo real
-        </label>
+          Sua localização em tempo real é sempre incluída no AGORA
+        </p>
 
         <button
           onClick={iniciarPublicacao}

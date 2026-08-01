@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
-import { X, Users } from 'lucide-react'
+import { X, Users, BadgeCheck } from 'lucide-react'
 import { PerfilPublicoModal } from './PerfilPublicoModal'
 
-type PessoaLista = { id: string; apelido: string; avatar_url: string | null }
+type PessoaLista = { id: string; apelido: string; avatar_url: string | null; verificado: boolean }
 
 export function ListaConexoesModal({
   perfilId,
@@ -28,7 +28,7 @@ export function ListaConexoesModal({
       const ids = (linhas || []).map((l: any) => l[colunaAlvo])
 
       if (ids.length > 0) {
-        const { data: perfis } = await supabase.from('profiles').select('id, apelido, avatar_url').in('id', ids)
+        const { data: perfis } = await supabase.from('profiles').select('id, apelido, avatar_url, verificado').in('id', ids)
         setLista(perfis || [])
       } else {
         setLista([])
@@ -65,7 +65,10 @@ export function ListaConexoesModal({
               className="w-8 h-8 rounded-full bg-background border border-borderRaw flex-shrink-0"
               style={p.avatar_url ? { backgroundImage: `url('${p.avatar_url}')`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
             />
-            <span className="text-xs font-mono text-accent/80">@{p.apelido}</span>
+            <span className="text-xs font-mono text-accent/80 flex items-center gap-1">
+              @{p.apelido}
+              {p.verificado && <BadgeCheck size={12} style={{ color: '#ff14e1' }} />}
+            </span>
           </button>
         ))}
       </div>
