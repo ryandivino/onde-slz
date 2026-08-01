@@ -41,6 +41,7 @@ import { EventosGeraisManager } from './components/EventosGeraisManager'
 import { LoadingScreen } from './components/LoadingScreen'
 import { PoliticasPopup } from './components/PoliticasModal'
 import { OnboardingPerfil } from './components/OnboardingPerfil'
+import { FotoDeslizavel } from './components/FotoDeslizavel'
 import { AdBanner } from './components/AdBanner'
 import { NovaSenhaScreen } from './components/NovaSenhaScreen'
 import { Menu, Bell, MapPin, Plus, Camera, Users, X, Flag, Search, Navigation, Send, Calendar, Flame, Pencil, Beer, UtensilsCrossed, Palette, Trash2, Crosshair, Sparkles, Zap, BadgeCheck } from 'lucide-react'
@@ -839,9 +840,7 @@ export default function App() {
                 {eventosGerais.map((evento) => (
                   <div key={evento.id} className="rounded-xl border border-borderRaw/20 bg-background/40 p-3 space-y-1.5">
                     {evento.image_url && (
-                      <div className="w-full aspect-[4/3] bg-black/30 rounded-lg overflow-hidden flex items-center justify-center">
-                        <img src={evento.image_url} alt="" className="max-w-full max-h-full object-contain" />
-                      </div>
+                      <FotoDeslizavel src={evento.image_url} aspecto="4/3" className="w-full rounded-lg" />
                     )}
                     <div className="flex items-start justify-between gap-2">
                       <div>

@@ -3,6 +3,7 @@ import { supabase } from '../supabase'
 import { useAuth } from '../hooks/useAuth'
 import { X, Calendar, Camera, MapPin } from 'lucide-react'
 import { MapaLocalPicker } from './MapaLocalPicker'
+import { FotoDeslizavel } from './FotoDeslizavel'
 import { geocodificarEndereco } from '../utils/geocodificarEndereco'
 
 const CATEGORIAS_BASE = ['BARES', 'RESTAURANTES', 'CULTURA', 'OUTROS']
@@ -142,11 +143,7 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
           {foto ? 'Foto selecionada — trocar' : 'Adicionar foto (opcional)'}
           <input type="file" accept="image/*" onChange={lidarComFoto} className="hidden" />
         </label>
-        {fotoPreview && (
-          <div className="w-full aspect-[4/3] bg-black/30 rounded-lg border border-borderRaw overflow-hidden flex items-center justify-center">
-            <img src={fotoPreview} alt="Prévia" className="max-w-full max-h-full object-contain" />
-          </div>
-        )}
+        {fotoPreview && <FotoDeslizavel src={fotoPreview} aspecto="4/3" className="w-full rounded-lg border border-borderRaw" />}
 
         <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest flex items-center gap-1.5">
           <MapPin size={11} /> Endereço do evento *
