@@ -54,6 +54,7 @@ export function LoginScreen({ onClose }: { onClose: () => void }) {
       if (error) {
         const novasTentativas = incrementarTentativas(email)
         setTentativas(novasTentativas)
+        console.error('[ONDE] Erro no cadastro/login:', error)
         setErro(error.message)
       } else {
         limparTentativas(email)
@@ -72,6 +73,7 @@ export function LoginScreen({ onClose }: { onClose: () => void }) {
       }
       const { error, precisaConfirmarEmail } = await cadastrar(email, senha, apelido.trim(), aceitouPoliticas)
       if (error) {
+        console.error('[ONDE] Erro no cadastro/login:', error)
         setErro(error.message)
       } else if (precisaConfirmarEmail) {
         setAguardandoConfirmacao(true)
@@ -81,7 +83,7 @@ export function LoginScreen({ onClose }: { onClose: () => void }) {
     } else {
       // recuperar
       const { error } = await enviarLinkRecuperacao(email)
-      if (error) setErro(error.message)
+      if (error) { console.error('[ONDE] Erro no cadastro/login:', error); setErro(error.message) }
       else {
         limparTentativas(email)
         setLinkRecuperacaoEnviado(true)
@@ -185,7 +187,7 @@ export function LoginScreen({ onClose }: { onClose: () => void }) {
           <input
             type="text"
             value={apelido}
-            onChange={(e) => setApelido(e.target.value)}
+            onChange={(e) => setApelido(e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))}
             placeholder="Seu @ (ex: joaosilva)"
             required
             className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs"

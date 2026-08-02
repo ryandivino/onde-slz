@@ -138,7 +138,7 @@ export function PerfilScreen({ onClose }: { onClose: () => void }) {
             <input
               type="text"
               value={novoApelido}
-              onChange={(e) => setNovoApelido(e.target.value)}
+              onChange={(e) => setNovoApelido(e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))}
               className="flex-1 bg-background border border-borderRaw rounded-lg p-2 text-xs font-mono"
               autoFocus
             />

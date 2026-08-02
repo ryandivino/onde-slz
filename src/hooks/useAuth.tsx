@@ -19,6 +19,19 @@ export type Perfil = {
 
 const MENSAGEM_APELIDO_EM_USO = 'Esse @ já está em uso. Escolha outro.'
 
+// O @ não pode ter maiúscula nem acento — mantém consistência (é assim
+// que a maioria dos apps trata @, e evita gente achando que "Joao" e
+// "joao" são apelidos diferentes). Remove tudo que não for letra minúscula,
+// número, ponto ou underscore.
+function normalizarApelido(apelido: string): string {
+  return apelido
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9_.]/g, '')
+}
+
 // Antes, cada componente que chamava useAuth() criava sua própria sessão,
 // seu próprio listener (onAuthStateChange) e sua própria busca de perfil —
 // redundante, e mais pesado conforme o app cresce. Agora existe um único
@@ -124,8 +137,9 @@ function useAuthState() {
   }
 
   const cadastrar = async (email: string, senha: string, apelido: string, aceitouPoliticas: boolean) => {
-    const apelidoLimpo = apelido.trim()
+    const apelidoLimpo = normalizarApelido(apelido)
 
+    if (apelidoLimpo.length < 3) return { error: new Error('O @ precisa ter pelo menos 3 letras/números (sem acento ou maiúscula).'), precisaConfirmarEmail: false }
     if (!aceitouPoliticas) return { error: new Error('É preciso aceitar as políticas e diretrizes pra criar uma conta.'), precisaConfirmarEmail: false }
 
     const { disponivel, error: erroCheck } = await apelidoDisponivel(apelidoLimpo)
@@ -176,8 +190,9 @@ function useAuthState() {
     },
     aceitouPoliticas?: boolean
   ) => {
-    const apelidoLimpo = apelido.trim()
+    const apelidoLimpo = normalizarApelido(apelido)
 
+    if (apelidoLimpo.length < 3) return { error: new Error('O @ precisa ter pelo menos 3 letras/números (sem acento ou maiúscula).'), precisaConfirmarEmail: false }
     if (!aceitouPoliticas) return { error: new Error('É preciso aceitar as políticas e diretrizes pra criar uma conta.'), precisaConfirmarEmail: false }
 
     const { disponivel, error: erroCheck } = await apelidoDisponivel(apelidoLimpo)
@@ -254,7 +269,9 @@ function useAuthState() {
 
   const atualizarApelido = async (novoApelido: string) => {
     if (!session?.user) return { error: new Error('Não autenticado.') }
-    const apelidoLimpo = novoApelido.trim()
+    const apelidoLimpo = normalizarApelido(novoApelido)
+
+    if (apelidoLimpo.length < 3) return { error: new Error('O @ precisa ter pelo menos 3 letras/números (sem acento ou maiúscula).') }
 
     const { error } = await supabase.rpc('trocar_apelido', { novo_apelido: apelidoLimpo })
     if (error) return { error: traduzirErroApelido(error) }

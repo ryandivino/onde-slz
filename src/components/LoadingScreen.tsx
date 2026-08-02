@@ -13,9 +13,6 @@ export function LoadingScreen({ onIniciar }: { onIniciar: () => void }) {
         Clique em qualquer lugar para iniciar.
       </span>
 
-      <div className="absolute bottom-8 flex items-center gap-1.5 text-accent/30">
-        <span className="text-[9px] font-mono uppercase tracking-widest">by MEMENTO</span>
-      </div>
     </div>
   )
 }

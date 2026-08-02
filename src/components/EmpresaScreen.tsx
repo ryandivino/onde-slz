@@ -66,7 +66,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
     setErro(null)
     setCarregando(true)
     const { error } = await entrar(email, senha)
-    if (error) setErro(error.message)
+    if (error) { console.error('[ONDE] Erro no cadastro/login:', error); setErro(error.message) }
     else onClose()
     setCarregando(false)
   }
@@ -143,7 +143,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
       aceitouPoliticas
     )
 
-    if (error) setErro(error.message)
+    if (error) { console.error('[ONDE] Erro no cadastro/login:', error); setErro(error.message) }
     else if (precisaConfirmarEmail) setAguardandoConfirmacao(true)
     else onClose()
 
@@ -205,7 +205,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
               Seu estabelecimento já está no mapa?
             </span>
             <p className="text-[10px] text-accent/50">
-              Seu local pode já existir no ONDE. Busque pelo nome antes de cadastrar do zero.
+              Seu local pode já estar no ONDE. Busque pelo nome antes de cadastrar do zero.
             </p>
 
             <div className="flex gap-2">
@@ -249,7 +249,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
           <div className="space-y-3">
             <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Etapa 1 — Dados do estabelecimento</span>
             {pulsoReivindicado && (
-              <p className="text-[9px] text-green-400">📍 Usando o local "{pulsoReivindicado.nome_local}" já fixado no mapa — os dados abaixo vão sobrepor os já existentes.</p>
+              <p className="text-[9px] text-green-400">📍 Usando o local "{pulsoReivindicado.nome_local}" já fixado no mapa — os dados abaixo vão sobrepor o que o moderador colocou.</p>
             )}
             <input type="text" value={nomeEstabelecimento} onChange={(e) => setNomeEstabelecimento(e.target.value)} placeholder="Nome do estabelecimento *" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs">
@@ -318,7 +318,7 @@ export function EmpresaScreen({ onClose }: { onClose: () => void }) {
             <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest block">Etapa 4 — Sua conta</span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
             <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Senha" minLength={6} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
-            <input type="text" value={apelido} onChange={(e) => setApelido(e.target.value)} placeholder="@ do estabelecimento (ex: bardojoao)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+            <input type="text" value={apelido} onChange={(e) => setApelido(e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))} placeholder="@ do estabelecimento (ex: bardojoao)" className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 
             <label className="flex items-start gap-2 text-[10px] font-mono text-accent/60">
               <input
