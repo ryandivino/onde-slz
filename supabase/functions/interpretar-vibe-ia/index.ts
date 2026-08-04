@@ -1,9 +1,4 @@
 // @ts-nocheck
-// supabase/functions/interpretar-vibe-ia/index.ts
-// Só é chamada como ÚLTIMO recurso (quando o dicionário local + o que já foi
-// aprendido não reconhecem nada) — pensado pra nunca gastar a cota gratuita
-// do Gemini sem necessidade.
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
@@ -45,6 +40,19 @@ Frase: "${texto}"`
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       }
     )
+
+    if (resposta.status === 429) {
+      return new Response(JSON.stringify({ error: 'cota_esgotada' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (!resposta.ok) {
+      return new Response(JSON.stringify({ error: 'Não foi possível interpretar agora.' }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
     const dados = await resposta.json()
     const textoResposta: string = dados?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toUpperCase() || ''

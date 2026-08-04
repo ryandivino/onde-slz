@@ -7,6 +7,7 @@ export type EventoGeral = {
   descricao: string | null
   categoria: string
   data_hora: string
+  data_hora_fim: string | null
   lat: number
   lng: number
   endereco: string | null
@@ -22,10 +23,14 @@ export function useEventosGerais() {
 
   const carregar = useCallback(async () => {
     setCarregando(true)
+    const agora = new Date().toISOString()
+    // Evento de um dia só: some quando o início (data_hora) passa, como
+    // já era. Evento de vários dias: continua visível até o FIM
+    // (data_hora_fim), não só até o início.
     const { data, error } = await supabase
       .from('eventos')
       .select('*')
-      .gte('data_hora', new Date().toISOString())
+      .or(`data_hora_fim.gte.${agora},and(data_hora_fim.is.null,data_hora.gte.${agora})`)
       .order('data_hora', { ascending: true })
 
     if (!error && data) {

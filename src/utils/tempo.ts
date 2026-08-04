@@ -13,3 +13,11 @@ export function formatarTempoRelativo(createdAt: string): string {
   const diffDias = Math.floor(diffH / 24)
   return `há ${diffDias}d atrás`
 }
+
+export function formatarPeriodoEvento(dataHora: string, dataHoraFim?: string | null): string {
+  const opcoes: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }
+  const inicio = new Date(dataHora).toLocaleString('pt-BR', opcoes)
+  if (!dataHoraFim) return inicio
+  const fim = new Date(dataHoraFim).toLocaleString('pt-BR', opcoes)
+  return `${inicio} até ${fim}`
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Map } from './components/Map'
 import { supabase } from './supabase'
-import { formatarTempoRelativo } from './utils/tempo'
+import { formatarTempoRelativo, formatarPeriodoEvento } from './utils/tempo'
 import { useAuth } from './hooks/useAuth'
 import { useConexoes } from './hooks/useConexoes'
 import { useNotificacoes } from './hooks/useNotificacoes'
@@ -25,7 +25,7 @@ import { EstatisticasPanel } from './components/EstatisticasPanel'
 import { InstallPrompt } from './components/InstallPrompt'
 import { PerfilPublicoModal } from './components/PerfilPublicoModal'
 import { CadastroLocalModerador } from './components/CadastroLocalModerador'
-import { categoriaMaisProvavel, interpretarVibe, categoriasAmbiguas } from './utils/interpretarVibe'
+import { categoriaMaisProvavel, interpretarVibe, categoriasAmbiguas, confiancaBaixa } from './utils/interpretarVibe'
 import { useAprendizadoVibe } from './hooks/useAprendizadoVibe'
 import { interpretarComIA } from './utils/aprenderVibe'
 import { InteracoesComentario } from './components/InteracoesComentario'
@@ -318,18 +318,25 @@ export default function App() {
   // bar), guarda TODAS as categorias próximas da líder, não só uma —
   // assim nenhuma fica "escondida" atrás de uma resposta única forçada.
   const resultadoVibe = abaDrawer === 'onde_ir' && !vibeDescartada ? interpretarVibe(termoBusca, dicionarioAprendido) : []
-  const categoriasRelevantes: Categoria[] =
-    resultadoVibe.length > 0 ? categoriasAmbiguas(resultadoVibe) : vibeIA ? [vibeIA] : []
+  const categoriasLocais = categoriasAmbiguas(resultadoVibe)
+  // Quando a IA responde, ela vira a categoria principal (é o motivo dela
+  // ter sido chamada: o resultado local não estava confiável) — as outras
+  // categorias locais continuam listadas depois, como complemento.
+  const categoriasRelevantes: Categoria[] = vibeIA
+    ? [vibeIA, ...categoriasLocais.filter((c) => c !== vibeIA)]
+    : categoriasLocais
   const vibeInterpretada = categoriasRelevantes[0] || null
 
-  // Só chama o Gemini (gratuito, mas com cota) quando o dicionário curado +
-  // o aprendido não reconheceram NADA — é o último recurso, não a primeira
-  // tentativa. Com um pequeno atraso, pra não disparar a cada letra digitada.
+  // Arquitetura em cascata: chama o Gemini quando a CONFIANÇA do resultado
+  // local é baixa — não só quando não achou nada. Um resultado local forte
+  // (ex: "balada" bateu bem em BARES) nunca precisa da IA; um resultado
+  // fraco ou empatado, sim. Com um pequeno atraso, pra não disparar a
+  // cada letra digitada.
   useEffect(() => {
     setVibeIA(null)
     if (abaDrawer !== 'onde_ir' || vibeDescartada) return
     if (!termoBusca.trim() || termoBusca.trim().length < 4) return
-    if (categoriaMaisProvavel(termoBusca, dicionarioAprendido)) return
+    if (!confiancaBaixa(interpretarVibe(termoBusca, dicionarioAprendido))) return
 
     const temporizador = setTimeout(() => {
       interpretarComIA(termoBusca).then((categoria) => {
@@ -847,7 +854,7 @@ export default function App() {
                         <span className="text-[8px] font-mono text-accent/40 uppercase tracking-widest">{evento.categoria}</span>
                         <h2 className="text-xs font-mono font-bold">{evento.titulo}</h2>
                         <span className="text-[10px] text-accent/60">
-                          {new Date(evento.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          {formatarPeriodoEvento(evento.data_hora, evento.data_hora_fim)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
@@ -901,7 +908,7 @@ export default function App() {
               <button type="button" onClick={() => setIsFormOpen(false)} className="text-accent/40 hover:text-accent"><X size={16} /></button>
             </div>
 
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está acontecendo?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que está rolando bem aqui, agora?" className="w-full h-24 bg-background border border-borderRaw rounded-lg p-3 text-sm" />
 
             <button type="submit" disabled={carregando} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg">
               {carregando ? 'ENVIANDO...' : 'ENVIAR'}
@@ -973,7 +980,7 @@ export default function App() {
           <div className="w-full max-w-sm bg-surface border border-red-500/40 rounded-2xl p-6 space-y-4 text-center">
             <span className="text-[10px] font-mono tracking-widest text-red-400 block">CONTA SUSPENSA</span>
             <p className="text-xs text-accent/70">
-              Sua conta foi suspensa e não pode mais ser usada. Se você acha que isso foi um erro, entre em contato pelo suporte.
+              Sua conta foi suspensa por um moderador do ONDE e não pode mais ser usada. Se você acha que isso foi um erro, entre em contato pelo suporte.
             </p>
             <button onClick={limparAvisoBanido} className="w-full bg-accent text-background font-bold py-3 uppercase rounded-lg text-xs">
               ENTENDI

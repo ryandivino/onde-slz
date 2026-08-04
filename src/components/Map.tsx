@@ -7,7 +7,7 @@ import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { Beer, UtensilsCrossed, Palette, MapPin, Calendar, Navigation, Flag, Send, Zap, BadgeCheck } from 'lucide-react'
-import { formatarTempoRelativo } from '../utils/tempo'
+import { formatarTempoRelativo, formatarPeriodoEvento } from '../utils/tempo'
 
 type Foco = { lat: number; lng: number; ts: number } | null
 
@@ -427,7 +427,7 @@ export function Map({
         .addTo(markersLayer.current!)
         .bindPopup(montarPopupComAcoes(
           evento.titulo,
-          `<p>${new Date(evento.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>${evento.descricao ? `<p class="text-gray-600 mt-1">"${evento.descricao}"</p>` : ''}${evento.endereco ? `<p class="text-gray-500 text-[9px] mt-0.5">📍 ${evento.endereco}</p>` : ''}`,
+          `<p>${formatarPeriodoEvento(evento.data_hora, evento.data_hora_fim)}</p>${evento.descricao ? `<p class="text-gray-600 mt-1">"${evento.descricao}"</p>` : ''}${evento.endereco ? `<p class="text-gray-500 text-[9px] mt-0.5">📍 ${evento.endereco}</p>` : ''}`,
           [
             { classe: 'popup-btn-rota', icone: svgBotao(Navigation) },
             { classe: 'popup-btn-denunciar', icone: svgBotao(Flag) }

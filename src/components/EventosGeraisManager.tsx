@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useEventosGerais } from '../hooks/useEventosGerais'
 import { X, Calendar, Trash2 } from 'lucide-react'
+import { formatarPeriodoEvento } from '../utils/tempo'
 
 export function EventosGeraisManager({ onClose }: { onClose: () => void }) {
   const { eventos, carregando, removerEvento } = useEventosGerais()
@@ -41,7 +42,7 @@ export function EventosGeraisManager({ onClose }: { onClose: () => void }) {
             <div className="min-w-0">
               <h2 className="text-xs font-mono truncate">{evento.titulo}</h2>
               <span className="text-[9px] text-accent/40">
-                {new Date(evento.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                {formatarPeriodoEvento(evento.data_hora, evento.data_hora_fim)}
               </span>
             </div>
             <button onClick={() => apagar(evento.id, evento.titulo)} className="text-red-400 hover:text-red-300 flex-shrink-0">

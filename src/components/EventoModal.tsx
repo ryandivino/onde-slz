@@ -20,6 +20,8 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
   const [titulo, setTitulo] = useState('')
   const [categoria, setCategoria] = useState(CATEGORIAS_BASE[0])
   const [dataHora, setDataHora] = useState(agoraFormatadoParaInput())
+  const [temVariosDias, setTemVariosDias] = useState(false)
+  const [dataHoraFim, setDataHoraFim] = useState('')
   const [descricao, setDescricao] = useState('')
   const [linkIngresso, setLinkIngresso] = useState('')
   const [foto, setFoto] = useState<File | null>(null)
@@ -72,6 +74,8 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
     if (!titulo.trim()) { setErro('Preencha o título do evento.'); return }
     if (!rua.trim() || !bairro.trim()) { setErro('Preencha ao menos a rua e o bairro do evento.'); return }
     if (!dataHora) { setErro('Escolha a data e hora do evento.'); return }
+    if (temVariosDias && !dataHoraFim) { setErro('Escolha a data e hora do fim do evento.'); return }
+    if (temVariosDias && new Date(dataHoraFim) <= new Date(dataHora)) { setErro('A data de término precisa ser depois do início.'); return }
     if (lat === null || lng === null) { setErro('Posicione o local do evento no mapa.'); return }
     if (!session?.user) return
 
@@ -94,6 +98,7 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
         descricao: descricao.trim() || null,
         categoria,
         data_hora: new Date(dataHora).toISOString(),
+        data_hora_fim: temVariosDias && dataHoraFim ? new Date(dataHoraFim).toISOString() : null,
         lat,
         lng,
         endereco: enderecoCompleto() || null,
@@ -130,9 +135,23 @@ export function EventoModal({ onClose, onPublicado }: { onClose: () => void; onP
         </select>
 
         <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest flex items-center gap-1.5">
-          <Calendar size={11} /> Data e horário do evento *
+          <Calendar size={11} /> Data e horário do {temVariosDias ? 'início' : ''} do evento *
         </span>
         <input type="datetime-local" value={dataHora} onChange={(e) => setDataHora(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+
+        <label className="flex items-center gap-2 text-[10px] font-mono text-accent/60 cursor-pointer">
+          <input type="checkbox" checked={temVariosDias} onChange={(e) => setTemVariosDias(e.target.checked)} />
+          Esse evento passa de um dia
+        </label>
+
+        {temVariosDias && (
+          <>
+            <span className="text-[9px] font-mono text-accent/40 uppercase tracking-widest flex items-center gap-1.5">
+              <Calendar size={11} /> Data e horário do término *
+            </span>
+            <input type="datetime-local" value={dataHoraFim} onChange={(e) => setDataHoraFim(e.target.value)} className="w-full bg-background border border-borderRaw rounded-lg p-2 text-xs" />
+          </>
+        )}
 
         <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição (opcional)" className="w-full h-16 bg-background border border-borderRaw rounded-lg p-2 text-xs" />
 

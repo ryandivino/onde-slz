@@ -23,10 +23,38 @@ export async function aprenderComPost(categoria: string, texto: string) {
   }
 }
 
+const CHAVE_COTA_ESGOTADA = 'onde_gemini_cota_esgotada_em'
+
+// Guarda a data (não a hora) em que a cota esgotou — se for hoje, nem
+// tenta chamar o Gemini de novo (evita ficar batendo à toa o resto do
+// dia). No dia seguinte, a data já não bate mais, e volta a tentar.
+function cotaEsgotadaHoje(): boolean {
+  try {
+    return localStorage.getItem(CHAVE_COTA_ESGOTADA) === new Date().toISOString().slice(0, 10)
+  } catch {
+    return false
+  }
+}
+
+function marcarCotaEsgotada() {
+  try {
+    localStorage.setItem(CHAVE_COTA_ESGOTADA, new Date().toISOString().slice(0, 10))
+  } catch {}
+}
+
 export async function interpretarComIA(texto: string): Promise<Categoria | null> {
+  if (cotaEsgotadaHoje()) return null
+
   try {
     const { data, error } = await supabase.functions.invoke('interpretar-vibe-ia', { body: { texto } })
-    if (error || !data?.categoria) return null
+    if (error || !data) return null
+
+    if (data.error === 'cota_esgotada') {
+      marcarCotaEsgotada()
+      return null
+    }
+
+    if (!data.categoria) return null
 
     const categoria = data.categoria as Categoria
     if (categoria !== 'OUTROS') aprenderComPost(categoria, texto)
